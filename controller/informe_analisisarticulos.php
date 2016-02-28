@@ -530,30 +530,6 @@ class informe_analisisarticulos extends fs_controller
             'text' => '<link rel="stylesheet" type="text/css" media="screen" href="plugins/kardex/view/css/bootstrap-select.min.css"/>',
             'params' => ''
          ),
-         array(
-            'name' => 'analisisarticulos_js001',
-            'page_from' => __CLASS__,
-            'page_to' => 'informe_analisisarticulos',
-            'type' => 'head',
-            'text' => '<script src="plugins/kardex/view/js/locale/grid.locale-es.js" type="text/javascript"></script>',
-            'params' => ''
-         ),
-         array(
-            'name' => 'analisisarticulos_js002',
-            'page_from' => __CLASS__,
-            'page_to' => 'informe_analisisarticulos',
-            'type' => 'head',
-            'text' => '<script src="plugins/kardex/view/js/plugins/jquery.jqGrid.min.js" type="text/javascript"></script>',
-            'params' => ''
-         ),
-         array(
-            'name' => 'analisisarticulos_js003',
-            'page_from' => __CLASS__,
-            'page_to' => 'informe_analisisarticulos',
-            'type' => 'head',
-            'text' => '<script src="plugins/kardex/view/js/bootstrap-select.min.js" type="text/javascript"></script>',
-            'params' => ''
-         )
       );
 
       foreach ($extensiones as $ext) {
