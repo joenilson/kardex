@@ -286,7 +286,7 @@ class kardex extends fs_model {
       if ($lista_productos) {
          foreach ($lista_productos as $item) {
             $resultados['kardex']['referencia'] = $item['referencia'];
-            $resultados['kardex']['descripcion'] = $item['descripcion'];
+            $resultados['kardex']['descripcion'] = stripcslashes($item['descripcion']);
             $resultados['kardex']['salida_cantidad'] = 0;
             $resultados['kardex']['ingreso_cantidad'] = 0;
             $resultados['kardex']['salida_monto'] = 0;

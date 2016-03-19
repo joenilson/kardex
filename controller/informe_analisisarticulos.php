@@ -100,7 +100,7 @@ class informe_analisisarticulos extends fs_controller
       $comparacion_fechas = (date('Y-m-d', strtotime($this->kardex_setup['kardex_ultimo_proceso'])) == date('Y-m-d', strtotime($this->kardex->ultimo_proceso())));
       $this->kardex_ultimo_proceso = ($comparacion_fechas)?$this->kardex_setup['kardex_ultimo_proceso']:$this->kardex->ultimo_proceso();
       $this->kardex_procesandose = ($this->kardex_setup['kardex_procesandose']=='TRUE')?TRUE:FALSE;
-      $this->kardex_usuario_procesando = (kardex_usuario_procesando)?$this->kardex_setup['kardex_usuario_procesando']:FALSE;
+      $this->kardex_usuario_procesando = ($this->kardex_setup['kardex_usuario_procesando'])?$this->kardex_setup['kardex_usuario_procesando']:FALSE;
       $this->kardex_cron = $this->kardex_setup['kardex_cron'];
       $this->kardex_programado = $this->kardex_setup['kardex_programado'];
       if(!empty($tiporeporte)){
@@ -232,14 +232,14 @@ class informe_analisisarticulos extends fs_controller
       /*
        * Generamos la informacion de las regularizaciones que se hayan hecho a los stocks
        */
-      $sql_regstocks = "select codalmacen, fecha, l.idstock, l.referencia, motivo, sum(cantidadfin) as cantidad, descripcion, costemedio
+      $sql_regstocks = "select codalmacen, fecha, l.idstock, a.referencia, motivo, sum(cantidadfin) as cantidad, descripcion, costemedio
          from lineasregstocks AS ls
          JOIN stocks as l ON(ls.idstock = l.idstock)
          JOIN articulos as a ON(a.referencia = l.referencia)
          where codalmacen = '".stripcslashes(strip_tags(trim($almacen->codalmacen)))."' AND fecha between '".$this->fecha_inicio."' and '".$this->fecha_fin."'
          and l.referencia IN ($productos)
-         group by l.codalmacen, fecha, l.idstock, l.referencia, motivo, descripcion, costemedio
-         order by codalmacen,referencia,fecha;";
+         group by l.codalmacen, fecha, l.idstock, a.referencia, motivo, descripcion, costemedio
+         order by codalmacen,a.referencia,fecha;";
       $data = $this->db->select($sql_regstocks);
       if($data){
          foreach($data as $linea){
@@ -261,15 +261,16 @@ class informe_analisisarticulos extends fs_controller
       /*
        * Generamos la informacion de los albaranes de proveedor asociados a facturas no anuladas
        */
-      $sql_albaranes = "select codalmacen,ac.fecha,ac.idalbaran,l.referencia,a.descripcion,sum(cantidad) as cantidad, sum(pvptotal) as monto
+      $sql_albaranes = "select codalmacen,ac.fecha,ac.idalbaran,a.referencia,a.descripcion,sum(cantidad) as cantidad, sum(pvptotal) as monto
          from albaranesprov as ac
          join lineasalbaranesprov as l ON (ac.idalbaran=l.idalbaran)
          JOIN articulos as a ON(a.referencia = l.referencia)
          where codalmacen = '".stripcslashes(strip_tags(trim($almacen->codalmacen)))."' AND fecha between '".$this->fecha_inicio."' and '".$this->fecha_fin."'
          and idfactura is not null
          and l.referencia in ($productos)
-         group by codalmacen,ac.fecha,ac.idalbaran,l.referencia,a.descripcion
-         order by codalmacen,l.referencia,fecha;";
+         group by codalmacen,ac.fecha,ac.idalbaran,a.referencia,a.descripcion
+         order by codalmacen,a.referencia,fecha;";
+      //echo $sql_albaranes;
       $data = $this->db->select($sql_albaranes);
       if($data){
          foreach($data as $linea){
@@ -279,7 +280,7 @@ class informe_analisisarticulos extends fs_controller
             $resultados['tipo_documento'] = ucfirst(FS_ALBARAN)." compra";
             $resultados['documento'] = $linea['idalbaran'];
             $resultados['referencia'] = $linea['referencia'];
-            $resultados['descripcion'] = $linea['descripcion'];
+            $resultados['descripcion'] = stripcslashes($linea['descripcion']);
             $resultados['salida_cantidad'] = ($linea['cantidad']<=0)?$linea['cantidad']:0;
             $resultados['ingreso_cantidad'] = ($linea['cantidad']>=0)?$linea['cantidad']:0;
             $resultados['salida_monto'] = ($linea['monto']<=0)?$linea['monto']:0;
