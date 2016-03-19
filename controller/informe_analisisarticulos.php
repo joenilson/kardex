@@ -94,13 +94,13 @@ class informe_analisisarticulos extends fs_controller
          'kardex_cron' => '',
          'kardex_programado' => '',
          'kardex_procesandose' => 'FALSE',
-         'kardex_usuario_procesando' => 'cron'
+         'kardex_usuario_procesando' => ''
          ), FALSE
       );
       $comparacion_fechas = (date('Y-m-d', strtotime($this->kardex_setup['kardex_ultimo_proceso'])) == date('Y-m-d', strtotime($this->kardex->ultimo_proceso())));
       $this->kardex_ultimo_proceso = ($comparacion_fechas)?$this->kardex_setup['kardex_ultimo_proceso']:$this->kardex->ultimo_proceso();
       $this->kardex_procesandose = ($this->kardex_setup['kardex_procesandose']=='TRUE')?TRUE:FALSE;
-      $this->kardex_usuario_procesando = $this->kardex_setup['kardex_usuario_procesando'];
+      $this->kardex_usuario_procesando = (kardex_usuario_procesando)?$this->kardex_setup['kardex_usuario_procesando']:FALSE;
       $this->kardex_cron = $this->kardex_setup['kardex_cron'];
       $this->kardex_programado = $this->kardex_setup['kardex_programado'];
       if(!empty($tiporeporte)){
