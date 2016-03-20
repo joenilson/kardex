@@ -40,14 +40,14 @@ class kardex extends fs_model {
    public $fecha_fin;
    public $fecha_proceso;
    public $articulo;
-   public $almacene;
+   public $almacen;
    public $articulos;
    public $almacenes;
    public $kardex_setup;
    public $cron;
 
    public function __construct($s = FALSE) {
-      parent::__construct('kardex', 'plugins/facturacion_base/');
+      parent::__construct('kardex', 'plugins/kardex/');
       if ($s) {
          $this->codalmacen = $s['codalmacen'];
          $this->fecha = $s['fecha'];
@@ -180,7 +180,7 @@ class kardex extends fs_model {
                $this->cron = true;
                $this->procesar_kardex();
             }else{
-               echo " ** No coincide la hora de proceso con la de ejecucion de cron se omite el calculo\n";  
+               echo " ** No coincide la hora de proceso con la de ejecucion de cron se omite el calculo\n";
             }
          }
       }
@@ -194,11 +194,11 @@ class kardex extends fs_model {
 
       $fsvar = new fs_var();
       $this->kardex_setup = $fsvar->array_get(
-              array(
-         'kardex_ultimo_proceso' => $this->fecha_proceso,
-         'kardex_procesandose' => 'FALSE',
-         'kardex_usuario_procesando' => 'cron'
-              ), FALSE
+        array(
+            'kardex_ultimo_proceso' => $this->fecha_proceso,
+            'kardex_procesandose' => 'FALSE',
+            'kardex_usuario_procesando' => 'cron'
+        ), FALSE
       );
       if ($this->kardex_setup['kardex_procesandose'] == 'TRUE' AND ( $this->cron)) {
          echo " ** Hay otro proceso calculando Kardex se cancela el proceso cron...\n";
@@ -496,7 +496,7 @@ class kardex extends fs_model {
       }else{
          return false;
       }
-      
+
    }
 
    /*
@@ -536,7 +536,6 @@ class kardex extends fs_model {
    public function rango_fechas() {
       $begin = new DateTime($this->fecha_inicio);
       $end = new DateTime($this->fecha_fin);
-      //$last = $end->modify( '+1 day' );
       $interval = new DateInterval('P1D');
       $daterange = new DatePeriod($begin, $interval, $end);
       return $daterange;
