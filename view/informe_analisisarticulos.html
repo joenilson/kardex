@@ -83,25 +83,6 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
       <div class="row">
          <div class="col-sm-2">
             <div class="form-group">
-               Fecha Inicio:
-               <input type="text" class="form-control datepicker" name='inicio' id="inicio" autocomplete="off"/>
-            </div>
-         </div>
-         <div class="col-sm-3">
-            <div class="form-group">
-               Fecha Fin:
-               <div class="input-group">
-                  <input type="text" class="form-control datepicker" name="fin" id="fin" autocomplete="off"/>
-                  <span class="input-group-btn">
-                     <button class="btn btn-primary" type="submit" id="b_generar_reporte" name="buscar">
-                        Generar
-                     </button>
-                  </span>
-               </div>
-            </div>
-         </div>
-         <div class="col-sm-2">
-            <div class="form-group">
                <a href="{$fsc->almacenes->url()}">Almacen</a>:
                <select class="form-control selectpicker" multiple='' name="codalmacen" id="codalmacen" data-style="btn-default" data-actions-box="true" required=''>
                {loop="$fsc->almacenes->all()"}
@@ -114,7 +95,7 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
                </select>
             </div>
          </div>
-         <div class="col-sm-3">
+         <div class="col-sm-2">
             <div class="form-group">
                <a href="{$fsc->familias->url()}">Familia</a>:
                <select class="form-control selectpicker" multiple='' name="codfamilia" id="codfamilia" data-style="btn-default" data-actions-box="true">
@@ -134,6 +115,34 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
                </select>
             </div>
          </div>
+         <div class="col-sm-1">
+            <div class="form-group">
+               Fecha Inicio:
+               <input type="text" class="form-control datepicker" name='inicio' id="inicio" autocomplete="off"/>
+            </div>
+         </div>
+         <div class="col-sm-1">
+            <div class="form-group">
+               Fecha Fin:
+               <input type="text" class="form-control datepicker" name="fin" id="fin" autocomplete="off"/>
+            </div>
+         </div>
+         <div class="col-sm-1">
+             <br/>
+            <div class="form-group">
+                <button class="btn btn-primary" type="submit" id="b_generar_reporte" name="buscar">
+                   Generar
+                </button>
+            </div>
+         </div>
+         <div class="col-sm-1">
+             <br/>
+            <div class="form-group">
+                <a href='{$fsc->fileName}' class="btn btn-success" id="b_descargar_reporte" style='display: none;'>
+                   Descargar
+                </a>
+            </div>
+         </div>          
       </div>
    </form>
    <div class="row">
@@ -327,6 +336,7 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
            async: false,
            data: 'procesar-reporte=true&inicio='+inicio+'&fin='+fin+'&almacen='+almacen+'&familia='+familia+'&articulo='+articulo,
            success: function(datos) {
+
                $("#grid_kardex").jqGrid('clearGridData');
                $("#grid_kardex").jqGrid({
                    title: 'Kardex del '+inicio+' al '+fin,
@@ -396,8 +406,10 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
                $('#grid_kardex').navGrid('#grid_kardex_pager',
                    { edit: false, add: false, del: false, search: true, refresh: false, view: false, position: "left", cloneToTop: true
                });
-               $('#b_descargar_reporte').attr('href',datos.filename);
-               $('#b_descargar_reporte').show();
+               if(datos.rows.length!==0){
+                    $('#b_descargar_reporte').attr('href',datos.filename);
+                    $('#b_descargar_reporte').show();
+               }
            }
        });
    }
@@ -441,6 +453,11 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
 
   $(document).ready(function () {
      $('#f_generar_reporte').submit(function (event) {
+         event.preventDefault();
+         get_stock();
+     });
+     
+     $('#f_descargar_reporte').submit(function (event) {
          event.preventDefault();
          get_stock();
      });
