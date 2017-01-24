@@ -161,7 +161,7 @@ class informe_analisisarticulos extends fs_controller
 
    public function kardex_almacen(){
       $resumen = array();
-      $this->fileName = 'tmp/'.FS_TMP_NAME.'/Kardex'."_".$this->user->nick.".xlsx";
+      $this->fileName = 'tmp'.DIRECTORY_SEPARATOR.FS_TMP_NAME.DIRECTORY_SEPARATOR.'Kardex'."_".$this->user->nick.".xlsx";
       if(file_exists($this->fileName)){
          unlink($this->fileName);
       }
