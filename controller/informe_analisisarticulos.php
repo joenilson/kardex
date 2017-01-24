@@ -520,7 +520,7 @@ class informe_analisisarticulos extends fs_controller
             'page_from' => __CLASS__,
             'page_to' => 'informe_analisisarticulos',
             'type' => 'head',
-            'text' => '<link rel="stylesheet" type="text/css" media="screen" href="plugins/kardex/view/css/ui.jqgrid-bootstrap.css"/>',
+            'text' => '<link rel="stylesheet" type="text/css" media="screen" href="'.FS_PATH.'plugins/kardex/view/css/ui.jqgrid-bootstrap.css"/>',
             'params' => ''
          ),
          array(
@@ -528,7 +528,7 @@ class informe_analisisarticulos extends fs_controller
             'page_from' => __CLASS__,
             'page_to' => 'informe_analisisarticulos',
             'type' => 'head',
-            'text' => '<link rel="stylesheet" type="text/css" media="screen" href="plugins/kardex/view/css/bootstrap-select.min.css"/>',
+            'text' => '<link rel="stylesheet" type="text/css" media="screen" href="'.FS_PATH.'plugins/kardex/view/css/bootstrap-select.min.css"/>',
             'params' => ''
          ),
       );
