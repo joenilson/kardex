@@ -247,6 +247,72 @@ class informe_analisisarticulos extends fs_controller
          }
       }
       /*
+       * Generamos la informacion de los albaranes de proveedor asociados a facturas no anuladas
+       */
+      $sql_albaranes = "select codalmacen,ac.fecha,ac.idalbaran,a.referencia,a.descripcion, coddivisa, tasaconv,sum(cantidad) as cantidad, sum(pvptotal) as monto
+         from albaranesprov as ac
+         join lineasalbaranesprov as l ON (ac.idalbaran=l.idalbaran)
+         JOIN articulos as a ON(a.referencia = l.referencia)
+         where codalmacen = '".stripcslashes(strip_tags(trim($almacen->codalmacen)))."' AND fecha between '".$this->fecha_inicio."' and '".$this->fecha_fin."'
+         and idfactura is not null
+         and l.referencia in ($productos)
+         group by codalmacen,ac.fecha,ac.idalbaran,a.referencia,a.descripcion, coddivisa, tasaconv
+         order by codalmacen,a.referencia,fecha;";
+      //echo $sql_albaranes;
+      $data = $this->db->select($sql_albaranes);
+      if($data){
+         foreach($data as $linea){
+            $linea['monto'] = ($linea['coddivisa']!=$this->empresa->coddivisa)?$this->euro_convert($this->divisa_convert($linea['monto'], $linea['coddivisa'], 'EUR')):$linea['monto'];
+            $resultados['codalmacen'] = $linea['codalmacen'];
+            $resultados['nombre'] = $almacen->nombre;
+            $resultados['fecha'] = $linea['fecha'];
+            $resultados['tipo_documento'] = ucfirst(FS_ALBARAN)." compra";
+            $resultados['documento'] = $linea['idalbaran'];
+            $resultados['referencia'] = $linea['referencia'];
+            $resultados['descripcion'] = stripcslashes($linea['descripcion']);
+            $resultados['salida_cantidad'] = ($linea['cantidad']<=0)?$linea['cantidad']:0;
+            $resultados['ingreso_cantidad'] = ($linea['cantidad']>=0)?$linea['cantidad']:0;
+            $resultados['salida_monto'] = ($linea['monto']<=0)?$linea['monto']:0;
+            $resultados['ingreso_monto'] = ($linea['monto']>=0)?$linea['monto']:0;
+            $lista[$linea['fecha']][] = $resultados;
+            $this->total_resultados++;
+            //$this->divisa_convert($precio, $coddivisa_desde, $coddivisa);
+         }
+      }
+
+      /*
+       * Generamos la informacion de las facturas de proveedor ingresadas
+       * que no esten asociadas a un albaran de proveedor
+       */
+      $sql_facturasprov = "select codalmacen,fc.fecha,fc.idfactura,referencia,descripcion, coddivisa, tasaconv,sum(cantidad) as cantidad, sum(pvptotal) as monto
+         from facturasprov as fc
+         join lineasfacturasprov as l ON (fc.idfactura=l.idfactura)
+         where codalmacen = '".stripcslashes(strip_tags(trim($almacen->codalmacen)))."' AND fecha between '".$this->fecha_inicio."' and '".$this->fecha_fin."'
+         and anulada=FALSE and idalbaran is null
+         and l.referencia in ($productos)
+         group by codalmacen,fc.fecha,fc.idfactura,referencia,descripcion, coddivisa, tasaconv
+         order by codalmacen,referencia,fecha;";
+      $data = $this->db->select($sql_facturasprov);
+      if($data){
+         foreach($data as $linea){
+            $linea['monto'] = ($linea['coddivisa']!=$this->empresa->coddivisa)?$this->euro_convert($this->divisa_convert($linea['monto'], $linea['coddivisa'], 'EUR')):$linea['monto'];
+            $resultados['codalmacen'] = $linea['codalmacen'];
+            $resultados['nombre'] = $almacen->nombre;
+            $resultados['fecha'] = $linea['fecha'];
+            $resultados['tipo_documento'] = ucfirst(FS_FACTURA)." compra";
+            $resultados['documento'] = $linea['idfactura'];
+            $resultados['referencia'] = $linea['referencia'];
+            $resultados['descripcion'] = $linea['descripcion'];
+            $resultados['salida_cantidad'] = ($linea['cantidad']<=0)?$linea['cantidad']:0;
+            $resultados['ingreso_cantidad'] = ($linea['cantidad']>=0)?$linea['cantidad']:0;
+            $resultados['salida_monto'] = ($linea['monto']<=0)?$linea['monto']:0;
+            $resultados['ingreso_monto'] = ($linea['monto']>=0)?$linea['monto']:0;
+            $lista[$linea['fecha']][] = $resultados;
+            $this->total_resultados++;
+         }
+      }
+      
+            /*
        * Generamos la informacion de las regularizaciones que se hayan hecho a los stocks
        */
       $sql_regstocks = "select codalmacen, fecha, l.idstock, a.referencia, motivo, sum(cantidadfin) as cantidad, descripcion, costemedio
@@ -338,82 +404,20 @@ class informe_analisisarticulos extends fs_controller
       }
 
       /*
-       * Generamos la informacion de los albaranes de proveedor asociados a facturas no anuladas
-       */
-      $sql_albaranes = "select codalmacen,ac.fecha,ac.idalbaran,a.referencia,a.descripcion,sum(cantidad) as cantidad, sum(pvptotal) as monto
-         from albaranesprov as ac
-         join lineasalbaranesprov as l ON (ac.idalbaran=l.idalbaran)
-         JOIN articulos as a ON(a.referencia = l.referencia)
-         where codalmacen = '".stripcslashes(strip_tags(trim($almacen->codalmacen)))."' AND fecha between '".$this->fecha_inicio."' and '".$this->fecha_fin."'
-         and idfactura is not null
-         and l.referencia in ($productos)
-         group by codalmacen,ac.fecha,ac.idalbaran,a.referencia,a.descripcion
-         order by codalmacen,a.referencia,fecha;";
-      //echo $sql_albaranes;
-      $data = $this->db->select($sql_albaranes);
-      if($data){
-         foreach($data as $linea){
-            $resultados['codalmacen'] = $linea['codalmacen'];
-            $resultados['nombre'] = $almacen->nombre;
-            $resultados['fecha'] = $linea['fecha'];
-            $resultados['tipo_documento'] = ucfirst(FS_ALBARAN)." compra";
-            $resultados['documento'] = $linea['idalbaran'];
-            $resultados['referencia'] = $linea['referencia'];
-            $resultados['descripcion'] = stripcslashes($linea['descripcion']);
-            $resultados['salida_cantidad'] = ($linea['cantidad']<=0)?$linea['cantidad']:0;
-            $resultados['ingreso_cantidad'] = ($linea['cantidad']>=0)?$linea['cantidad']:0;
-            $resultados['salida_monto'] = ($linea['monto']<=0)?$linea['monto']:0;
-            $resultados['ingreso_monto'] = ($linea['monto']>=0)?$linea['monto']:0;
-            $lista[$linea['fecha']][] = $resultados;
-            $this->total_resultados++;
-         }
-      }
-
-      /*
-       * Generamos la informacion de las facturas de proveedor ingresadas
-       * que no esten asociadas a un albaran de proveedor
-       */
-      $sql_facturasprov = "select codalmacen,fc.fecha,fc.idfactura,referencia,descripcion,sum(cantidad) as cantidad, sum(pvptotal) as monto
-         from facturasprov as fc
-         join lineasfacturasprov as l ON (fc.idfactura=l.idfactura)
-         where codalmacen = '".stripcslashes(strip_tags(trim($almacen->codalmacen)))."' AND fecha between '".$this->fecha_inicio."' and '".$this->fecha_fin."'
-         and anulada=FALSE and idalbaran is null
-         and l.referencia in ($productos)
-         group by codalmacen,fc.fecha,fc.idfactura,referencia,descripcion
-         order by codalmacen,referencia,fecha;";
-      $data = $this->db->select($sql_facturasprov);
-      if($data){
-         foreach($data as $linea){
-            $resultados['codalmacen'] = $linea['codalmacen'];
-            $resultados['nombre'] = $almacen->nombre;
-            $resultados['fecha'] = $linea['fecha'];
-            $resultados['tipo_documento'] = ucfirst(FS_FACTURA)." compra";
-            $resultados['documento'] = $linea['idfactura'];
-            $resultados['referencia'] = $linea['referencia'];
-            $resultados['descripcion'] = $linea['descripcion'];
-            $resultados['salida_cantidad'] = ($linea['cantidad']<=0)?$linea['cantidad']:0;
-            $resultados['ingreso_cantidad'] = ($linea['cantidad']>=0)?$linea['cantidad']:0;
-            $resultados['salida_monto'] = ($linea['monto']<=0)?$linea['monto']:0;
-            $resultados['ingreso_monto'] = ($linea['monto']>=0)?$linea['monto']:0;
-            $lista[$linea['fecha']][] = $resultados;
-            $this->total_resultados++;
-         }
-      }
-
-      /*
        * Generamos la informacion de los albaranes asociados a facturas no anuladas
        */
-      $sql_albaranes = "select codalmacen,ac.fecha,ac.idalbaran,referencia,descripcion,sum(cantidad) as cantidad, sum(pvptotal) as monto
+      $sql_albaranes = "select codalmacen,ac.fecha,ac.idalbaran,referencia,descripcion,coddivisa, tasaconv,sum(cantidad) as cantidad, sum(pvptotal) as monto
          from albaranescli as ac
          join lineasalbaranescli as l ON (ac.idalbaran=l.idalbaran)
          where codalmacen = '".stripcslashes(strip_tags(trim($almacen->codalmacen)))."' AND fecha between '".$this->fecha_inicio."' and '".$this->fecha_fin."'
          and idfactura is not null
          and l.referencia in ($productos)
-         group by codalmacen,ac.fecha,ac.idalbaran,referencia,descripcion
+         group by codalmacen,ac.fecha,ac.idalbaran,referencia,descripcion,coddivisa,tasaconv
          order by codalmacen,referencia,fecha;";
       $data = $this->db->select($sql_albaranes);
       if($data){
          foreach($data as $linea){
+            $linea['monto'] = ($linea['coddivisa']!=$this->empresa->coddivisa)?$this->euro_convert($this->divisa_convert($linea['monto'], $linea['coddivisa'], 'EUR')):$linea['monto'];
             $resultados['codalmacen'] = $linea['codalmacen'];
             $resultados['nombre'] = $almacen->nombre;
             $resultados['fecha'] = $linea['fecha'];
@@ -433,17 +437,18 @@ class informe_analisisarticulos extends fs_controller
       /*
        * Generamos la informacion de los albaranes no asociados a facturas
        */
-      $sql_albaranes_sin_factura = "select codalmacen,ac.fecha,ac.idalbaran,referencia,descripcion,sum(cantidad) as cantidad, sum(pvptotal) as monto
+      $sql_albaranes_sin_factura = "select codalmacen,ac.fecha,ac.idalbaran,referencia,descripcion,coddivisa, tasaconv,sum(cantidad) as cantidad, sum(pvptotal) as monto
          from albaranescli as ac
          join lineasalbaranescli as l ON (ac.idalbaran=l.idalbaran)
          where codalmacen = '".stripcslashes(strip_tags(trim($almacen->codalmacen)))."' AND fecha between '".$this->fecha_inicio."' and '".$this->fecha_fin."'
          and idfactura is null
          and l.referencia in ($productos)
-         group by codalmacen,ac.fecha,ac.idalbaran,referencia,descripcion
+         group by codalmacen,ac.fecha,ac.idalbaran,referencia,descripcion,coddivisa, tasaconv
          order by codalmacen,referencia,fecha;";
       $data = $this->db->select($sql_albaranes_sin_factura);
       if($data){
          foreach($data as $linea){
+            $linea['monto'] = ($linea['coddivisa']!=$this->empresa->coddivisa)?$this->euro_convert($this->divisa_convert($linea['monto'], $linea['coddivisa'], 'EUR')):$linea['monto'];
             $resultados['codalmacen'] = $linea['codalmacen'];
             $resultados['nombre'] = $almacen->nombre;
             $resultados['fecha'] = $linea['fecha'];
@@ -463,17 +468,18 @@ class informe_analisisarticulos extends fs_controller
       /*
        * Generamos la informacion de las facturas que se han generado sin albaran
        */
-      $sql_facturas = "select codalmacen,fc.fecha,fc.idfactura,referencia,descripcion,sum(cantidad) as cantidad, sum(pvptotal) as monto
+      $sql_facturas = "select codalmacen,fc.fecha,fc.idfactura,referencia,descripcion,descripcion,coddivisa,sum(cantidad) as cantidad, sum(pvptotal) as monto
          from facturascli as fc
          join lineasfacturascli as l ON (fc.idfactura=l.idfactura)
          where codalmacen = '".stripcslashes(strip_tags(trim($almacen->codalmacen)))."' AND fecha between '".$this->fecha_inicio."' and '".$this->fecha_fin."'
          and anulada=FALSE and idalbaran is null
          and l.referencia in ($productos)
-         group by codalmacen,fc.fecha,fc.idfactura,referencia,descripcion
+         group by codalmacen,fc.fecha,fc.idfactura,referencia,descripcion,descripcion,coddivisa
          order by codalmacen,referencia,fecha;";
       $data = $this->db->select($sql_facturas);
       if($data){
          foreach($data as $linea){
+            $linea['monto'] = ($linea['coddivisa']!=$this->empresa->coddivisa)?$this->euro_convert($this->divisa_convert($linea['monto'], $linea['coddivisa'], 'EUR')):$linea['monto'];
             $resultados['codalmacen'] = $linea['codalmacen'];
             $resultados['nombre'] = $almacen->nombre;
             $resultados['fecha'] = $linea['fecha'];
@@ -626,18 +632,18 @@ class informe_analisisarticulos extends fs_controller
    {
       $result = "'";
       foreach($this->familia as $key=>$value){
-         $result .= $value."',";
+         $result .= $value."','";
       }
-      return substr($result, 0, strlen($result)-1);
+      return substr($result, 0, strlen($result)-2);
    }
 
    private function articulo_data()
    {
       $result = "'";
       foreach($this->articulo as $key=>$value){
-         $result .= $value."',";
+         $result .= $value."','";
       }
-      return substr($result, 0, strlen($result)-1);
+      return substr($result, 0, strlen($result)-2);
    }
 
    /**
