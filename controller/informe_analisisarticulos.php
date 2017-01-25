@@ -53,7 +53,8 @@ class informe_analisisarticulos extends fs_controller
    public $stock;
    public $lista_almacenes;
    public $fileName;
-   public $archivosDir = 'archivos';
+   public $documentosDir;
+   public $kardexDir;
    public $writer;
    public $kardex;
    public $kardex_setup;
@@ -81,9 +82,18 @@ class informe_analisisarticulos extends fs_controller
       $this->resultados_almacen = '';
 
       $this->fileName = '';
-      if(!is_dir(FS_PATH.FS_MYDOCS.$this->archivosDir)){
-          mkdir($this->archivosDir);
+      $basepath = dirname(dirname(dirname(__DIR__)));
+      $this->documentosDir = $basepath.DIRECTORY_SEPARATOR.FS_MYDOCS.'documentos';
+      $this->dir_kardex = $this->documentosDir.DIRECTORY_SEPARATOR."kardex";
+      
+      if(!is_dir($this->documentosDir)){
+          mkdir($this->documentosDir);
       }
+      
+      if(!is_dir($this->dir_kardex)){
+          mkdir($this->dir_kardex);
+      }
+      
       $tiporeporte = \filter_input(INPUT_POST, 'procesar-reporte');
 
       for($x=0; $x<25;$x++)
