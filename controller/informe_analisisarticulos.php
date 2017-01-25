@@ -84,14 +84,14 @@ class informe_analisisarticulos extends fs_controller
       $this->fileName = '';
       $basepath = dirname(dirname(dirname(__DIR__)));
       $this->documentosDir = $basepath.DIRECTORY_SEPARATOR.FS_MYDOCS.'documentos';
-      $this->dir_kardex = $this->documentosDir.DIRECTORY_SEPARATOR."kardex";
+      $this->kardexDir = $this->documentosDir.DIRECTORY_SEPARATOR."kardex";
       
       if(!is_dir($this->documentosDir)){
           mkdir($this->documentosDir);
       }
       
-      if(!is_dir($this->dir_kardex)){
-          mkdir($this->dir_kardex);
+      if(!is_dir($this->kardexDir)){
+          mkdir($this->kardexDir);
       }
       
       $tiporeporte = \filter_input(INPUT_POST, 'procesar-reporte');
@@ -175,7 +175,7 @@ class informe_analisisarticulos extends fs_controller
 
    public function kardex_almacen(){
       $resumen = array();
-      $this->fileName = FS_PATH.FS_MYDOCS.$this->archivosDir.DIRECTORY_SEPARATOR.'Kardex'."_".$this->user->nick.".xlsx";
+      $this->fileName = $this->kardexDir.DIRECTORY_SEPARATOR.'Kardex'."_".$this->user->nick.".xlsx";
       if(file_exists($this->fileName)){
          unlink($this->fileName);
       }
