@@ -68,7 +68,8 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
             {if="$fsc->kardex_procesandose"}
             <div class="alert alert-warning">
                 Usuario <b>{$fsc->kardex_usuario_procesando}</b> procesando Kardex,
-                por favor actualice la página hasta que el usuario termine su proceso.
+                por favor actualice la página hasta que el usuario termine su proceso. Si cree que es un error cancele este proceso
+                <button class="btn btn-sm btn-danger" type="button" id="b_cancelar_kardex">Cancelar Proceso</button>
             </div>
             {/if}
             {if="$fsc->kardex_ultimo_proceso==''"}
@@ -491,6 +492,10 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
             event.preventDefault();
             set_options();
         });
+        $('#b_cancelar_kardex').click(function (event) {
+            window.location.href = '{$fsc->url()}&cancelar_kardex=TRUE';
+        });
+        
         $('#b_kardex').click(function (event) {
             $("#modal_calcular_kardex").modal('show');
         });

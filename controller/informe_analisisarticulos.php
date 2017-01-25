@@ -113,6 +113,15 @@ class informe_analisisarticulos extends fs_controller
          'kardex_usuario_procesando' => ''
          ), FALSE
       );
+      
+      $cancelar_kardex = \filter_input(INPUT_GET, 'cancelar_kardex');
+      if(!empty($cancelar_kardex)){
+          $fsvar->array_save(array(
+            'kardex_procesandose' => 'FALSE',
+            'kardex_usuario_procesando' => ''
+         ));
+      }
+      
       $comparacion_fechas = (date('Y-m-d', strtotime($this->kardex_setup['kardex_ultimo_proceso'])) == date('Y-m-d', strtotime($this->kardex->ultimo_proceso())));
       $this->kardex_ultimo_proceso = ($comparacion_fechas)?$this->kardex_setup['kardex_ultimo_proceso']:$this->kardex->ultimo_proceso();
       $this->kardex_procesandose = ($this->kardex_setup['kardex_procesandose']=='TRUE')?TRUE:FALSE;
