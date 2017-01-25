@@ -1,1 +1,8 @@
-Añade el informe kardex para poder ver inventarios valorados.
+Añade el informe kardex para poder ver inventarios valorados.<br/>
+Revisa:
+<ul>
+<li>Documentos de Compra</li>
+<li>Documentos de Venta</li>
+<li>Regularización de Stock</li>
+<li>Transferencias entre almacenes</li>
+</ul>

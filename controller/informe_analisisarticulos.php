@@ -7,12 +7,12 @@
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See th * e
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -53,6 +53,7 @@ class informe_analisisarticulos extends fs_controller
    public $stock;
    public $lista_almacenes;
    public $fileName;
+   public $archivosDir = 'archivos';
    public $writer;
    public $kardex;
    public $kardex_setup;
@@ -61,7 +62,7 @@ class informe_analisisarticulos extends fs_controller
    public $kardex_usuario_procesando;
    public $kardex_programado;
    public $loop_horas;
-   
+
    public function __construct()
    {
       parent::__construct(__CLASS__, "Kardex", 'informes', FALSE, TRUE);
@@ -78,8 +79,11 @@ class informe_analisisarticulos extends fs_controller
       $this->reporte = '';
       $this->total_resultados = 0;
       $this->resultados_almacen = '';
-      
+
       $this->fileName = '';
+      if(!is_dir(FS_PATH.FS_MYDOCS.$this->archivosDir)){
+          mkdir($this->archivosDir);
+      }
       $tiporeporte = \filter_input(INPUT_POST, 'procesar-reporte');
 
       for($x=0; $x<25;$x++)
@@ -161,10 +165,11 @@ class informe_analisisarticulos extends fs_controller
 
    public function kardex_almacen(){
       $resumen = array();
-      $this->fileName = FS_PATH.DIRECTORY_SEPARATOR.'tmp'.DIRECTORY_SEPARATOR.FS_TMP_NAME.'Kardex'."_".$this->user->nick.".xlsx";
+      $this->fileName = FS_PATH.FS_MYDOCS.$this->archivosDir.DIRECTORY_SEPARATOR.'Kardex'."_".$this->user->nick.".xlsx";
       if(file_exists($this->fileName)){
          unlink($this->fileName);
       }
+
       $header = array(
          'Fecha'=>'date',
          'Documento'=>'string',
@@ -172,10 +177,10 @@ class informe_analisisarticulos extends fs_controller
          'Código'=>'string',
          'Artículo'=>'string',
          'Salida'=>'#,###,###.##',
-         'Ingreso'=>'#,###,###.##',
-         'Saldo'=>'#,###,###.##',
          'Salida Valorizada'=>'#,###,###.##',
+         'Ingreso'=>'#,###,###.##',
          'Ingreso Valorizado'=>'#,###,###.##',
+         'Saldo'=>'#,###,###.##',
          'Saldo Valorizado'=>'#,###,###.##');
       $this->writer = new XLSXWriter();
 
@@ -205,7 +210,7 @@ class informe_analisisarticulos extends fs_controller
       //Generamos el select para la subconsulta
       $productos = "SELECT referencia FROM articulos where bloqueado = false and nostock = false $codfamilia $referencia";
       $lista = array();
-      
+
       /*
        * Obtenemos el saldo inicial para el rango de fechas de la tabla de Inventario Diario
        */
@@ -258,6 +263,68 @@ class informe_analisisarticulos extends fs_controller
             $this->total_resultados++;
          }
       }
+
+       /*
+       * Generamos la informacion de las transferencias por salida que se hayan hecho a los stocks
+       */
+      $sql_regstocks = "select codalmaorigen, fecha, l.idtrans, a.referencia, sum(cantidad) as cantidad, a.descripcion, costemedio
+         from lineastransstock AS ls
+         JOIN transstock as l ON(ls.idtrans = l.idtrans)
+         JOIN articulos as a ON(a.referencia = ls.referencia)
+         where codalmaorigen = '".stripcslashes(strip_tags(trim($almacen->codalmacen)))."' AND fecha between '".$this->fecha_inicio."' and '".$this->fecha_fin."'
+         and ls.referencia IN ($productos)
+         group by l.codalmaorigen, fecha, l.idtrans, a.referencia, a.descripcion, costemedio
+         order by codalmaorigen,a.referencia,fecha;";
+      //echo $sql_regstocks;
+      $data = $this->db->select($sql_regstocks);
+      if($data){
+         foreach($data as $linea){
+            $resultados['codalmacen'] = $linea['codalmaorigen'];
+            $resultados['nombre'] = $almacen->nombre;
+            $resultados['fecha'] = $linea['fecha'];
+            $resultados['tipo_documento'] = "Transferencia";
+            $resultados['documento'] = $linea['idtrans'];
+            $resultados['referencia'] = $linea['referencia'];
+            $resultados['descripcion'] = $linea['descripcion'];
+            $resultados['salida_cantidad'] = ($linea['cantidad']>=0)?$linea['cantidad']:0;
+            $resultados['ingreso_cantidad'] = 0;
+            $resultados['salida_monto'] = ($linea['cantidad']>=0)?($linea['costemedio']*$linea['cantidad']):0;
+            $resultados['ingreso_monto'] = 0;
+            $lista[$linea['fecha']][] = $resultados;
+            $this->total_resultados++;
+         }
+      }
+
+       /*
+       * Generamos la informacion de las transferencias por ingresos que se hayan hecho a los stocks
+       */
+      $sql_regstocks = "select codalmadestino, fecha, l.idtrans, a.referencia, sum(cantidad) as cantidad, a.descripcion, costemedio
+         from lineastransstock AS ls
+         JOIN transstock as l ON(ls.idtrans = l.idtrans)
+         JOIN articulos as a ON(a.referencia = ls.referencia)
+         where codalmadestino = '".stripcslashes(strip_tags(trim($almacen->codalmacen)))."' AND fecha between '".$this->fecha_inicio."' and '".$this->fecha_fin."'
+         and ls.referencia IN ($productos)
+         group by l.codalmadestino, fecha, l.idtrans, a.referencia, a.descripcion, costemedio
+         order by codalmadestino,a.referencia,fecha;";
+      $data = $this->db->select($sql_regstocks);
+      if($data){
+         foreach($data as $linea){
+            $resultados['codalmacen'] = $linea['codalmadestino'];
+            $resultados['nombre'] = $almacen->nombre;
+            $resultados['fecha'] = $linea['fecha'];
+            $resultados['tipo_documento'] = "Transferencia";
+            $resultados['documento'] = $linea['idtrans'];
+            $resultados['referencia'] = $linea['referencia'];
+            $resultados['descripcion'] = $linea['descripcion'];
+            $resultados['salida_cantidad'] = 0;
+            $resultados['ingreso_cantidad'] = ($linea['cantidad']>=0)?$linea['cantidad']:0;
+            $resultados['salida_monto'] = 0;
+            $resultados['ingreso_monto'] = ($linea['cantidad']>=0)?($linea['costemedio']*$linea['cantidad']):0;
+            $lista[$linea['fecha']][] = $resultados;
+            $this->total_resultados++;
+         }
+      }
+
       /*
        * Generamos la informacion de los albaranes de proveedor asociados a facturas no anuladas
        */
@@ -350,7 +417,7 @@ class informe_analisisarticulos extends fs_controller
             $this->total_resultados++;
          }
       }
-      
+
       /*
        * Generamos la informacion de los albaranes no asociados a facturas
        */
@@ -398,7 +465,7 @@ class informe_analisisarticulos extends fs_controller
             $resultados['codalmacen'] = $linea['codalmacen'];
             $resultados['nombre'] = $almacen->nombre;
             $resultados['fecha'] = $linea['fecha'];
-            $resultados['tipo_documento'] = ucfirst(FS_FACTURA)." venta";
+            $resultados['tipo_documento'] = ($linea['cantidad']>=0)?ucfirst(FS_FACTURA)." venta":"Devolución venta";
             $resultados['documento'] = $linea['idfactura'];
             $resultados['referencia'] = $linea['referencia'];
             $resultados['descripcion'] = $linea['descripcion'];
@@ -420,8 +487,10 @@ class informe_analisisarticulos extends fs_controller
       $lista_export = array();
       $resumen = array();
       ksort($lista);
+      $id_linea = 1;
       foreach($lista as $fecha){
          foreach($fecha as $value){
+            $value['id'] = $id_linea++;
             if(!isset($resumen[$value['codalmacen']][$value['referencia']]['saldo_cantidad'])){
                 $resumen[$value['codalmacen']][$value['referencia']]['saldo_cantidad'] = 0;
             }
@@ -487,10 +556,10 @@ class informe_analisisarticulos extends fs_controller
                         $referencia,
                         $cabecera_export[$referencia],
                         $movimiento['salida_cantidad'],
-                        $movimiento['ingreso_cantidad'],
-                        $movimiento['saldo_cantidad'],
                         $movimiento['salida_monto'],
+                        $movimiento['ingreso_cantidad'],
                         $movimiento['ingreso_monto'],
+                        $movimiento['saldo_cantidad'],
                         $movimiento['saldo_monto']
                      )
                   );
@@ -503,7 +572,7 @@ class informe_analisisarticulos extends fs_controller
             }
          }
          $this->writer->writeSheetRow($almacen->nombre,
-            array('', '', '', '', 'Saldo Final', $sumaSalidasQda[$referencia], $sumaIngresosQda[$referencia], ($sumaIngresosQda[$referencia]-$sumaSalidasQda[$referencia]), $sumaSalidasMonto[$referencia], $sumaIngresosMonto[$referencia], ($sumaIngresosMonto[$referencia]-$sumaSalidasMonto[$referencia]))
+            array('', '', '', '', 'Saldo Final', $sumaSalidasQda[$referencia], $sumaSalidasMonto[$referencia], $sumaIngresosQda[$referencia], $sumaIngresosMonto[$referencia], ($sumaIngresosQda[$referencia]-$sumaSalidasQda[$referencia]), ($sumaIngresosMonto[$referencia]-$sumaSalidasMonto[$referencia]))
          );
          $this->writer->writeSheetRow($almacen->nombre,
             array('', '', '', '', '', '', '', '', '', '', '')
