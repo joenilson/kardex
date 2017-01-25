@@ -19,6 +19,7 @@
 require_model('articulo.php');
 require_model('almacen.php');
 require_model('empresa.php');
+require_model('divisa.php');
 
 /**
  * Kardex para manejo de Artículos con inventario inicial e inventario final por fecha
@@ -591,6 +592,56 @@ class kardex extends fs_model {
       $interval = new DateInterval('P1D');
       $daterange = new DatePeriod($begin, $interval, $end);
       return $daterange;
+   }
+   
+   public function euro_convert($precio, $coddivisa = NULL, $tasaconv = NULL)
+   {
+      if($this->empresa->coddivisa == 'EUR')
+      {
+         return $precio;
+      }
+      else if($coddivisa AND $tasaconv)
+      {
+         if($this->empresa->coddivisa == $coddivisa)
+         {
+            return $precio * $tasaconv;
+         }
+         else
+         {
+            $original = $precio * $tasaconv;
+            return $this->divisa_convert($original, $coddivisa, $this->empresa->coddivisa);
+         }
+      }
+      else
+      {
+         return $this->divisa_convert($precio, 'EUR', $this->empresa->coddivisa);
+      }
+   }
+   
+   /**
+    * Convierte un precio de la divisa_desde a la divisa especificada
+    * @param type $precio
+    * @param type $coddivisa_desde
+    * @param type $coddivisa
+    * @return type
+    */
+   public function divisa_convert($precio, $coddivisa_desde, $coddivisa)
+   {
+      if($coddivisa_desde != $coddivisa)
+      {
+         $div0 = new divisa();
+         $divisa_desde = $div0->get($coddivisa_desde);
+         if($divisa_desde)
+         {
+            $divisa = $div0->get($coddivisa);
+            if($divisa)
+            {
+               $precio = $precio / $divisa_desde->tasaconv * $divisa->tasaconv;
+            }
+         }
+      }
+      
+      return $precio;
    }
 
 }
