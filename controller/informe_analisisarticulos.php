@@ -55,6 +55,7 @@ class informe_analisisarticulos extends fs_controller
    public $fileName;
    public $documentosDir;
    public $kardexDir;
+   public $publicPath;
    public $writer;
    public $kardex;
    public $kardex_setup;
@@ -85,6 +86,7 @@ class informe_analisisarticulos extends fs_controller
       $basepath = dirname(dirname(dirname(__DIR__)));
       $this->documentosDir = $basepath.DIRECTORY_SEPARATOR.FS_MYDOCS.'documentos';
       $this->kardexDir = $this->documentosDir.DIRECTORY_SEPARATOR."kardex";
+      $this->publicPath = FS_MYDOCS.'documentos'.DIRECTORY_SEPARATOR.'kardex';
       
       if(!is_dir($this->documentosDir)){
           mkdir($this->documentosDir);
@@ -175,7 +177,7 @@ class informe_analisisarticulos extends fs_controller
 
    public function kardex_almacen(){
       $resumen = array();
-      $this->fileName = $this->kardexDir.DIRECTORY_SEPARATOR.'Kardex'."_".$this->user->nick.".xlsx";
+      $this->fileName = $this->$this->publicPath.DIRECTORY_SEPARATOR.'Kardex'."_".$this->user->nick.".xlsx";
       if(file_exists($this->fileName)){
          unlink($this->fileName);
       }
