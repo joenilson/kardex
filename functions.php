@@ -18,7 +18,7 @@
  */
 require_once 'plugins/kardex/vendor/php-i18n/i18n.class.php';
 $i18n = "";
-function i18n($lang){
+function i18n_kardex($lang){
     $language = ($lang and file_exists('plugins/kardex/lang/lang_'.$lang.'.ini'))?$lang:'es';
     $i18n = new i18n('plugins/kardex/lang/lang_'.$language.'.ini', 'plugins/kardex/langcache/');
     $i18n->setForcedLang($language);
