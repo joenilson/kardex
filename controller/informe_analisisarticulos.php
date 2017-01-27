@@ -81,7 +81,6 @@ class informe_analisisarticulos extends fs_controller
       $this->share_extension();
       $lang = substr($_SERVER['HTTP_ACCEPT_LANGUAGE'], 0, 2);
       $this->user_lang = (!isset($this->user->lang))?$lang:'es';
-      $this->language($this->user_lang);
       $this->fecha_inicio = \date('01-m-Y');
       $this->fecha_fin = \date('t-m-Y');
       $this->reporte = '';
