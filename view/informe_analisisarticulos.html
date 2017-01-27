@@ -1,4 +1,5 @@
 {include="header"}
+{function="i18n($fsc->user_lang)"}
 <!--
 Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
 
@@ -18,26 +19,35 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
 -->
 <script src="{#FS_PATH#}plugins/kardex/view/js/bootstrap-select.min.js" type="text/javascript"></script>
 <script src="{#FS_PATH#}plugins/kardex/view/js/plugins/jquery.jqGrid.min.js" type="text/javascript"></script>
-<script src="{#FS_PATH#}plugins/kardex/view/js/locale/grid.locale-es.js" type="text/javascript"></script>
+<script src="{#FS_PATH#}plugins/kardex/view/js/locale/grid.locale-{$fsc->user_lang}.js" type="text/javascript"></script>
 <div class="container-fluid">
     <div class="row">
         <div class="col-sm-4">
             <div class="btn-group">
-                <a class="btn btn-sm btn-default" href="{$fsc->url()}" title="Recargar la página">
+                <a class="btn btn-sm btn-default" href="{$fsc->url()}" title="{function="L::reloadpage"}">
                     <span class="glyphicon glyphicon-refresh"></span>
                 </a>
+                {if="$fsc->page->is_default()"}
+                <a class="btn btn-sm btn-default active" href="{$fsc->url()}&amp;default_page=FALSE" title="{function="L::unmarkashomepage"}">
+                   <span class="glyphicon glyphicon-home"></span>
+                </a>
+                {else}
+                <a class="btn btn-sm btn-default" href="{$fsc->url()}&amp;default_page=TRUE" title="{function="L::markashomepage"}">
+                   <span class="glyphicon glyphicon-home"></span>
+                </a>
+                {/if}
             </div>
             <div class="btn-group">
                 {if="!$fsc->kardex_procesandose"}
                 <a href="#" class="btn btn-default btn-sm" id="b_kardex" name="kardex">
                     <span class='glyphicon glyphicon-equalizer'></span>
-                    <span class="hidden-xs">&nbsp; Calcular Inventario Diario</span>
+                    <span class="hidden-xs">&nbsp;{function="L::kardex_CalcularInventarioDiario"}</span>
                 </a>
                 {/if}
                 {if="!$fsc->kardex_procesandose"}
                 <a href="#" class="btn btn-default btn-sm" id="b_opciones_kardex" name="opciones_kardex">
                     <span class='glyphicon glyphicon-cog'></span>
-                    <span class="hidden-xs">&nbsp; Opciones de Calculo</span>
+                    <span class="hidden-xs">&nbsp;{function="L::kardex_OpcionesCalculo"}</span>
                 </a>
                 {/if}
             </div>
@@ -45,21 +55,20 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
         <div class="col-sm-4 text-center text-warning">
             {if="$fsc->kardex_ultimo_proceso"}
             <small>
-                Última fecha procesada: {$fsc->kardex_ultimo_proceso}
+                <b>{function="L::kardex_UltimaFechaProcesada"}:</b> {$fsc->kardex_ultimo_proceso}
             </small>
             {/if}
         </div>
         <div class="col-sm-4 text-right">
             <h2 style="margin-top: 0px;">
-                <span class="fa fa-bar-chart"></span>&nbsp;Kardex
+                <span class="fa fa-bar-chart"></span>&nbsp;{function="L::kardex_Kardex"}
             </h2>
         </div>
     </div>
     <div class="row">
         <div class="col-sm-12">
             <p class='help-block'>
-                Por favor seleccione el rango de fechas, el almacen involucrado, si necesita puede filtrar por familia o por producto y
-                luego proceda a hacer clic en el boton <b>Generar</b>.
+                {function="L::kardex_BloqueAyuda"}
             </p>
         </div>
     </div>
@@ -67,15 +76,12 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
         <div class="col-sm-12">
             {if="$fsc->kardex_procesandose"}
             <div class="alert alert-warning">
-                Usuario <b>{$fsc->kardex_usuario_procesando}</b> procesando Kardex,
-                por favor actualice la página hasta que el usuario termine su proceso. Si cree que es un error cancele este proceso
-                <button class="btn btn-sm btn-danger" type="button" id="b_cancelar_kardex">Cancelar Proceso</button>
+                {function="L::kardex_BloqueAyudaCalculoEjecutandose('$fsc->kardex_usuario_procesando')"}
             </div>
             {/if}
             {if="$fsc->kardex_ultimo_proceso==''"}
             <div class="alert alert-warning">
-                No se ha ejecutado el Calculo de Inventario Diario nunca, por favor ejecutelo
-                ahora o programelo para que pueda tener información correcta de los art&iacute;culos
+                {function="L::kardex_BloqueAyudaInventarioVacio"}
             </div>
             {/if}
         </div>
@@ -85,7 +91,7 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
         <div class="row">
             <div class="col-sm-2">
                 <div class="form-group">
-                    <a href="{$fsc->almacenes->url()}">Almacen</a>:
+                    <a href="{$fsc->almacenes->url()}">{function="L::kardex_Almacen"}</a>:
                     <select class="form-control input-sm selectpicker" multiple='' name="codalmacen" id="codalmacen" data-style="btn-default" data-actions-box="true" required=''>
                         {loop="$fsc->almacenes->all()"}
                         {if="$counter==0"}
@@ -99,7 +105,7 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
             </div>
             <div class="col-sm-2">
                 <div class="form-group">
-                    <a href="{$fsc->familias->url()}">Familia</a>:
+                    <a href="{$fsc->familias->url()}">{function="L::kardex_Familia"}</a>:
                     <select class="form-control input-sm selectpicker" multiple='' name="codfamilia" id="codfamilia" data-style="btn-default" data-actions-box="true">
                         {loop="$fsc->familias->all()"}
                         <option value="{$value->codfamilia}">{$value->descripcion}</option>
@@ -109,7 +115,7 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
             </div>
             <div class="col-sm-2">
                 <div class="form-group">
-                    <a href="{$fsc->articulos->url()}">Artículo</a>:
+                    <a href="{$fsc->articulos->url()}">{function="L::kardex_Articulo"}</a>:
                     <select class="form-control input-sm selectpicker" multiple='' name="referencia" id="referencia" data-style="btn-default" data-actions-box="true">
                         {loop="$fsc->articulos->all()"}
                         <option value="{$value->referencia}">{$value->descripcion}</option>
@@ -119,13 +125,13 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
             </div>
             <div class="col-sm-2">
                 <div class="form-group">
-                    Fecha Inicio:
+                    {function="L::kardex_FechaInicio"}:
                     <input type="text" class="form-control input-sm datepicker" name='inicio' id="inicio" autocomplete="off"/>
                 </div>
             </div>
             <div class="col-sm-2">
                 <div class="form-group">
-                    Fecha Fin:
+                    {function="L::kardex_FechaFin"}:
                     <input type="text" class="form-control input-sm datepicker" name="fin" id="fin" autocomplete="off"/>
                 </div>
             </div>
@@ -133,7 +139,7 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
                 <br/>
                 <div class="form-group">
                     <button class="btn btn-sm btn-primary" type="submit" id="b_generar_reporte" name="buscar">
-                        Generar
+                        {function="L::kardex_botonGenerar"}
                     </button>
                 </div>
             </div>
@@ -141,10 +147,33 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
                 <br/>
                 <div class="form-group">
                     <a href='{$fsc->fileName}' class="btn btn-sm btn-success" id="b_descargar_reporte" style='display: none;'>
-                        Descargar
+                        {function="L::kardex_botonDescargar"}
                     </a>
                 </div>
             </div>
+        </div>
+        <div class='col-sm-12'>
+            <label class="radio-inline">
+                <input type="radio" name="mostrar" id="mostrarTodo" value="todo" {if="$fsc->mostrar=='todo'"}checked{/if}> {function="L::kardex_Todo"}
+            </label>
+            <label class="radio-inline">
+                <input type="radio" name="mostrar" id="mostrarCompra" value="compra" {if="$fsc->mostrar=='compra'"}checked{/if}> {function="L::kardex_Compra"}
+            </label>
+            <label class="radio-inline">
+                <input type="radio" name="mostrar" id="mostrarVenta" value="venta" {if="$fsc->mostrar=='venta'"}checked{/if}> {function="L::kardex_Venta"}
+            </label>
+            <label class="radio-inline">
+                <input type="radio" name="mostrar" id="mostrarDevolucionCompra" value="devolucion-compra" {if="$fsc->mostrar=='devolucion-compra'"}checked{/if}> {function="L::kardex_Devolucion"} {function="L::kardex_Compra"}
+            </label>
+            <label class="radio-inline">
+                <input type="radio" name="mostrar" id="mostrarDevolucionVenta" value="devolucion-venta" {if="$fsc->mostrar=='devolucion-venta'"}checked{/if}> {function="L::kardex_Devolucion"} {function="L::kardex_Venta"}
+            </label>
+            <label class="radio-inline">
+                <input type="radio" name="mostrar" id="mostrarTransferencia" value="transferencia" {if="$fsc->mostrar=='transferencia'"}checked{/if}> {function="L::kardex_Transferencia"}
+            </label>
+            <label class="radio-inline">
+                <input type="radio" name="mostrar" id="mostrarRegularizacion" value="regularizacion" {if="$fsc->mostrar=='regularizacion'"}checked{/if}> {function="L::kardex_Regularizacion"}
+            </label>
         </div>
     </form>
     <div class="row">
@@ -175,22 +204,21 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-                <h4 class="modal-title">Ejecutar Calculo de Inventario Diario</h4>
+                <h4 class="modal-title">{function="L::kardex_EjecutarCalculodeInventarioDiario"}</h4>
             </div>
             <div class="modal-body bg-info">
                 <p align="justify">
-                    Si lo necesita puede indicar dos fechas para procesar el Inventario diario, si deja en blanco estos valores, se procesar&aacute;
-                    siguiendo la ultima fecha procesada, que es <b>{$fsc->kardex_ultimo_proceso}</b>.
+                    {function="L::kardex_BloqueAyudaEjecutarCalculo"}: <b>{$fsc->kardex_ultimo_proceso}</b>.
                 </p>
                 <hr/>
                 <div class="row">
                     <div class="col-sm-12">
                         <div class="form-group col-xs-6 col-md-6">
-                            <label for='kardex_inicio' class="control-label"><b>Fecha Inicio</b> (opcional)</label>
+                            <label for='kardex_inicio' class="control-label"><b>{function="L::kardex_FechaInicio"}</b> ({function="L::kardex_opcional"})</label>
                             <input type="text" class="form-control datepicker" name='kardex_inicio' id="kardex_inicio">
                         </div>
                         <div class="form-group col-xs-6 col-md-6">
-                            <label for='kardex_fin'><b>Fecha Fin</b> (opcional)</label>
+                            <label for='kardex_fin'><b>{function="L::kardex_FechaFin"}</b> ({function="L::kardex_opcional"})</label>
                             <input type="text" class="form-control datepicker" name="kardex_fin" id="kardex_fin">
                         </div>
                     </div>
@@ -198,7 +226,7 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
             </div>
             <div class="modal-footer">
                 <button type="button" id="b_calcular_kardex" data-disable="true" class="btn btn-sm btn-warning">
-                    <span class='glyphicon glyphicon-equalizer'></span> &nbsp; Calcular
+                    <span class='glyphicon glyphicon-equalizer'></span>&nbsp;{function="L::kardex_Calcular"}
                 </button>
             </div>
         </div>
@@ -211,35 +239,33 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
             <form class="form" id="f_opciones_kardex" role="form" action="{$fsc->url()}" method="POST">
                 <div class="modal-header">
                     <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-                    <h4 class="modal-title">Opciones de Calculo de Inventario Diario</h4>
+                    <h4 class="modal-title">{function="L::kardex_OpcionesCalculoInventarioDiario"}</h4>
                 </div>
                 <div class="modal-body bg-warning">
                     <p align="justify">
-                        Aqui puede indicar una hora espec&iacute;fica para ejecutar autom&aacute;ticamente el Calculo de Inventario Diario, pero para esto debe tener correctamente configurado
-                        el proceso de cron al instalar FacturaScripts, tenga en cuenta que si su cron esta configurado para ejecutarse una sola vez al d&iacute;a, entonces debe colocar
-                        la hora de ejecuci&oacute;n del Calculo de Inventario a la hora que corre el cron:
+                        {function="L::kardex_BloqueAyudaOpcionesCalculo"}:
                     </p>
                     <hr/>
                     <div class="row">
                         <div class="col-sm-6">
-                            <label class="control-label"><b>Se ejecuta autom&aacute;ticamente?</b></label>
+                            <label class="control-label"><b>¿{function="L::kardex_OpcionesCalculoEjecutaAutomatico"}?</b></label>
                         </div>
                         <div class="col-sm-6">
                             <div class="form-group" id="kardex_cron_ops">
                                 <label class="control-label">
                                     <input type="radio" name='kardex_cron' value='TRUE'{if="$fsc->kardex_cron"} checked=''{/if}>
-                                    Si
+                                    {function="L::kardex_SiText"}
                                 </label>
                                 &nbsp;
                                 <label class="control-label">
                                     <input type="radio" name='kardex_cron' value=''{if="!$fsc->kardex_cron"} checked=''{/if}>
-                                    No
+                                    {function="L::kardex_NoText"}
                                 </label>
                             </div>
                         </div>
                     </div>
                     <div class="form-group">
-                        <label class="control-label col-sm-6 pull-left" for='kardex_programado'><b>Hora de Ejecuci&oacute;n:</b></label>
+                        <label class="control-label col-sm-6 pull-left" for='kardex_programado'><b>{function="L::kardex_OpcionesCalculoHoraEjecucion"}:</b></label>
                         <select class="control-label selectpicker col-xs-2" name='kardex_programado' style="width: 20px;">
                             {loop="$fsc->loop_horas"}
                             <option value="{$value}" {if="$fsc->kardex_programado == $value"}selected{/if}>{$value}</option>
@@ -249,7 +275,7 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
                 </div>
                 <div class="modal-footer">
                     <button type="submit" data-disable="true" class="btn btn-sm btn-warning">
-                        <span class="glyphicon glyphicon-floppy-disk"></span> &nbsp; Guardar Cambios
+                        <span class="glyphicon glyphicon-floppy-disk"></span> &nbsp;{function="L::kardex_botonGuardarCambios"}
                     </button>
                 </div>
             </form>
@@ -259,10 +285,10 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
 
 <script>
     $.fn.selectpicker.defaults = {
-        selectAllText: 'Marcar Todo',
-        deselectAllText: 'Desmarcar',
-        noneSelectedText: 'Nada seleccionado',
-        countSelectedText: "{0} de {1} selecionados",
+        selectAllText: '{function="L::kardex_MarcarTodo"}',
+        deselectAllText: '{function="L::kardex_Desmarcar"}',
+        noneSelectedText: '{function="L::kardex_NadaSeleccionado"}',
+        countSelectedText: "{0} {function="L::kardex_de"} {1} {function="L::kardex_Seleccionados"}",
         selectedTextFormat: 'count'
     };
 
@@ -290,7 +316,7 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
             xhr.onreadystatechange = function () {
                 try {
                     if (xhr.readyState === 4) {
-                        alert('Trabajo completado');
+                        alert('{function="L::kardex_AlertaCompleto"}');
                         $('#modal_proceso_kardex').modal('hide');
                         window.location.assign("{$fsc->url()}");
                     } else if (xhr.readyState > 2) {
@@ -344,13 +370,13 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
                     data: datos.rows,
                     datatype: "local",
                     colModel: [
-                        {label: 'Almacén', name: 'nombre', width: 80},
-                        {label: 'Fecha', name: 'fecha', width: 50},
-                        {label: 'Documento', name: 'tipo_documento', width: 70},
-                        {label: 'Número', name: 'documento', width: 50},
-                        {label: 'Artículo', name: 'descripcion', width: 90},
+                        {label: '{function="L::kardex_Almacen"}', name: 'nombre', width: 80},
+                        {label: '{function="L::kardex_Fecha"}', name: 'fecha', width: 50},
+                        {label: '{function="L::kardex_Documento"}', name: 'tipo_documento', width: 70},
+                        {label: '{function="L::kardex_Numero"}', name: 'documento', width: 50},
+                        {label: '{function="L::kardex_Articulo"}', name: 'descripcion', width: 90},
                         {
-                            label: 'Salida Qdad',
+                            label: '{function="L::kardex_Salida"} {function="L::kardex_CantidadAbrev"}',
                             name: 'salida_cantidad',
                             width: 60,
                             summaryTpl: "<b>{0}</b>",
@@ -358,7 +384,7 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
                             formatoptions: {decimalSeparator: ".", decimalPlaces: 2, thousandsSeparator: ","}
                         },
                         {
-                            label: 'Salida {$fsc->empresa->coddivisa}',
+                            label: '{function="L::kardex_Salida"} {$fsc->empresa->coddivisa}',
                             name: 'salida_monto',
                             width: 70,
                             summaryTpl: "<b>{0}</b>",
@@ -366,7 +392,7 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
                             formatoptions: {decimalSeparator: ".", decimalPlaces: 2, thousandsSeparator: ","}
                         },
                         {
-                            label: 'Ingreso Qdad',
+                            label: '{function="L::kardex_Ingreso"} {function="L::kardex_CantidadAbrev"}',
                             name: 'ingreso_cantidad',
                             width: 60,
                             summaryTpl: "<b>{0}</b>",
@@ -374,7 +400,7 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
                             formatoptions: {decimalSeparator: ".", decimalPlaces: 2, thousandsSeparator: ","}
                         },
                         {
-                            label: 'Ingreso {$fsc->empresa->coddivisa}',
+                            label: '{function="L::kardex_Ingreso"} {$fsc->empresa->coddivisa}',
                             name: 'ingreso_monto',
                             width: 70,
                             summaryTpl: "<b>{0}</b>",
@@ -382,7 +408,7 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
                             formatoptions: {decimalSeparator: ".", decimalPlaces: 2, thousandsSeparator: ","}
                         },
                         {
-                            label: 'Saldo Qdad',
+                            label: '{function="L::kardex_Saldo"} {function="L::kardex_CantidadAbrev"}',
                             name: 'saldo_cantidad',
                             width: 60,
                             summaryTpl: "<b>{0}</b>",
@@ -390,7 +416,7 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
                             formatoptions: {decimalSeparator: ".", decimalPlaces: 2, thousandsSeparator: ","}
                         },
                         {
-                            label: 'Saldo {$fsc->empresa->coddivisa}',
+                            label: '{function="L::kardex_Saldo"} {$fsc->empresa->coddivisa}',
                             name: 'saldo_monto',
                             width: 70,
                             summaryTpl: "<b>{0}</b>",

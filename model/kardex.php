@@ -244,7 +244,7 @@ class kardex extends fs_model {
             $time = $fin_paso->h . ':' . $fin_paso->i . ':' . $fin_paso->s;
             $tiempo_en_segundos = strtotime("1970-01-01 $time UTC");
             $tiempo_estimado = gmdate("H:i:s", ($dias_proceso * $tiempo_en_segundos));
-            $response = array('message' => 'Procesando <b>' . $fecha->format("Y-m-d") . '</b>, ' . ($contador + 1) . ' día' . $plural . ' de <b>' . $dias_proceso . '</b> procesado' . $plural . ' en ' . $tiempo_proceso->format('%H:%I:%S') . ', a las: ' . date("h:i:s", time()) . ' tiempo estimado total de proceso: <b>' . $tiempo_estimado . '</b>',
+            $response = array('message' => L::kardex_Procesando.' <b>' . $fecha->format("Y-m-d") . '</b>, ' . ($contador + 1) . ' '.L::kardex_DiaText . $plural . L::kardex_de.' <b>' . $dias_proceso . '</b> '.L::kardex_Procesado . $plural . ' '.L::kardex_EnText.' ' . $tiempo_proceso->format('%H:%I:%S') . ', '.L::kardex_aLasText.': ' . date("h:i:s", time()) .' '. L::kardex_TiempoEstimado.': <b>' . $tiempo_estimado . '</b>',
                'progress' => $p);
             echo json_encode($response);
          }
@@ -257,7 +257,7 @@ class kardex extends fs_model {
          'kardex_usuario_procesando' => ''
       ));
       if (!$this->cron) {
-         $response = array('message' => '<b>¡Tarea completada en ' . $tiempo_proceso->format('%H:%I:%S') . '!<b>',
+         $response = array('message' => '<b>¡'.L::kardex_AlertaCompleto.' '.L::kardex_EnText . $tiempo_proceso->format('%H:%I:%S') . '!<b>',
             'progress' => 100);
          echo json_encode($response);
       } else {
