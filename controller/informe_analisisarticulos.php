@@ -52,7 +52,7 @@ class informe_analisisarticulos extends fs_controller
    public $almacen;
    public $almacenes;
    public $stock;
-   public $i18n;
+   public $i18n_controller;
    public $lista_almacenes;
    public $fileName;
    public $documentosDir;
@@ -663,9 +663,9 @@ class informe_analisisarticulos extends fs_controller
    
    private function language($lang=false){
       $language = ($lang and file_exists('plugins/kardex/lang/lang_'.$lang.'.ini'))?$lang:'es';
-      $this->i18n = new i18n('plugins/kardex/lang/lang_'.$language.'.ini', 'plugins/kardex/langcache/');
-      $this->i18n->setForcedLang($language);
-      $this->i18n->init();
+      $this->i18n_controller = new i18n('plugins/kardex/lang/lang_'.$language.'.ini', 'plugins/kardex/langcache/');
+      $this->i18n_controller->setForcedLang($language);
+      $this->i18n_controller->init();
    }   
 
    /**
