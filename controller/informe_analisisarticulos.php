@@ -196,17 +196,17 @@ class informe_analisisarticulos extends fs_controller
          unlink($this->fileName);
       }
       $header = array(
-         L::kardex_Fecha=>'date',
-         L::kardex_Documento=>'string',
-         L::kardex_Numero=>'string',
-         L::kardex_Referencia=>'string',
-         L::kardex_Articulo=>'string',
-         L::kardex_Salida=>'#,###,###.##',
-         L::kardex_SalidaValorizada=>'#,###,###.##',
-         L::kardex_Ingreso=>'#,###,###.##',
-         L::kardex_IngresoValorizado=>'#,###,###.##',
-         L::kardex_Saldo=>'#,###,###.##',
-         L::kardex_SaldoValorizado=>'#,###,###.##');
+         K::kardex_Fecha=>'date',
+         K::kardex_Documento=>'string',
+         K::kardex_Numero=>'string',
+         K::kardex_Referencia=>'string',
+         K::kardex_Articulo=>'string',
+         K::kardex_Salida=>'#,###,###.##',
+         K::kardex_SalidaValorizada=>'#,###,###.##',
+         K::kardex_Ingreso=>'#,###,###.##',
+         K::kardex_IngresoValorizado=>'#,###,###.##',
+         K::kardex_Saldo=>'#,###,###.##',
+         K::kardex_SaldoValorizado=>'#,###,###.##');
       $this->writer = new XLSXWriter();
 
       foreach($this->almacen as $index=>$codigo)
@@ -245,7 +245,7 @@ class informe_analisisarticulos extends fs_controller
             $resultados['codalmacen'] = $almacen->codalmacen;
             $resultados['nombre'] = $almacen->nombre;
             $resultados['fecha'] = $this->fecha_inicio;
-            $resultados['tipo_documento'] = L::kardex_SaldoInicial;
+            $resultados['tipo_documento'] = K::kardex_SaldoInicial;
             $resultados['documento'] = 'STOCK';
             $resultados['referencia'] = $linea['referencia'];
             $resultados['descripcion'] = $linea['descripcion'];
@@ -279,7 +279,7 @@ class informe_analisisarticulos extends fs_controller
             $resultados['codalmacen'] = $linea['codalmacen'];
             $resultados['nombre'] = $almacen->nombre;
             $resultados['fecha'] = $linea['fecha'];
-            $resultados['tipo_documento'] = ucfirst(FS_ALBARAN)." ".L::kardex_Compra;
+            $resultados['tipo_documento'] = ucfirst(FS_ALBARAN)." ".K::kardex_Compra;
             $resultados['documento'] = $linea['idalbaran'];
             $resultados['referencia'] = $linea['referencia'];
             $resultados['descripcion'] = stripcslashes($linea['descripcion']);
@@ -312,7 +312,7 @@ class informe_analisisarticulos extends fs_controller
             $resultados['codalmacen'] = $linea['codalmacen'];
             $resultados['nombre'] = $almacen->nombre;
             $resultados['fecha'] = $linea['fecha'];
-            $resultados['tipo_documento'] = ucfirst(FS_FACTURA)." ".L::kardex_Compra;
+            $resultados['tipo_documento'] = ucfirst(FS_FACTURA)." ".K::kardex_Compra;
             $resultados['documento'] = $linea['idfactura'];
             $resultados['referencia'] = $linea['referencia'];
             $resultados['descripcion'] = $linea['descripcion'];
@@ -342,7 +342,7 @@ class informe_analisisarticulos extends fs_controller
             $resultados['codalmacen'] = $linea['codalmacen'];
             $resultados['nombre'] = $almacen->nombre;
             $resultados['fecha'] = $linea['fecha'];
-            $resultados['tipo_documento'] = L::kardex_Regularizacion;
+            $resultados['tipo_documento'] = K::kardex_Regularizacion;
             $resultados['documento'] = $linea['idstock'];
             $resultados['referencia'] = $linea['referencia'];
             $resultados['descripcion'] = $linea['descripcion'];
@@ -373,7 +373,7 @@ class informe_analisisarticulos extends fs_controller
             $resultados['codalmacen'] = $linea['codalmaorigen'];
             $resultados['nombre'] = $almacen->nombre;
             $resultados['fecha'] = $linea['fecha'];
-            $resultados['tipo_documento'] = L::kardex_Transferencia;
+            $resultados['tipo_documento'] = K::kardex_Transferencia;
             $resultados['documento'] = $linea['idtrans'];
             $resultados['referencia'] = $linea['referencia'];
             $resultados['descripcion'] = $linea['descripcion'];
@@ -403,7 +403,7 @@ class informe_analisisarticulos extends fs_controller
             $resultados['codalmacen'] = $linea['codalmadestino'];
             $resultados['nombre'] = $almacen->nombre;
             $resultados['fecha'] = $linea['fecha'];
-            $resultados['tipo_documento'] = L::kardex_Transferencia;
+            $resultados['tipo_documento'] = K::kardex_Transferencia;
             $resultados['documento'] = $linea['idtrans'];
             $resultados['referencia'] = $linea['referencia'];
             $resultados['descripcion'] = $linea['descripcion'];
@@ -434,7 +434,7 @@ class informe_analisisarticulos extends fs_controller
             $resultados['codalmacen'] = $linea['codalmacen'];
             $resultados['nombre'] = $almacen->nombre;
             $resultados['fecha'] = $linea['fecha'];
-            $resultados['tipo_documento'] = ucfirst(FS_ALBARAN)." ".L::kardex_Venta;
+            $resultados['tipo_documento'] = ucfirst(FS_ALBARAN)." ".K::kardex_Venta;
             $resultados['documento'] = $linea['idalbaran'];
             $resultados['referencia'] = $linea['referencia'];
             $resultados['descripcion'] = $linea['descripcion'];
@@ -465,7 +465,7 @@ class informe_analisisarticulos extends fs_controller
             $resultados['codalmacen'] = $linea['codalmacen'];
             $resultados['nombre'] = $almacen->nombre;
             $resultados['fecha'] = $linea['fecha'];
-            $resultados['tipo_documento'] = ucfirst(FS_ALBARAN)." ".L::kardex_VentaNoFacturada;
+            $resultados['tipo_documento'] = ucfirst(FS_ALBARAN)." ".K::kardex_VentaNoFacturada;
             $resultados['documento'] = $linea['idalbaran'];
             $resultados['referencia'] = $linea['referencia'];
             $resultados['descripcion'] = $linea['descripcion'];
@@ -496,7 +496,7 @@ class informe_analisisarticulos extends fs_controller
             $resultados['codalmacen'] = $linea['codalmacen'];
             $resultados['nombre'] = $almacen->nombre;
             $resultados['fecha'] = $linea['fecha'];
-            $resultados['tipo_documento'] = ($linea['cantidad']>=0)?ucfirst(FS_FACTURA)." ".L::kardex_Venta:L::kardex_Devolucion." ".L::kardex_Venta;
+            $resultados['tipo_documento'] = ($linea['cantidad']>=0)?ucfirst(FS_FACTURA)." ".K::kardex_Venta:K::kardex_Devolucion." ".K::kardex_Venta;
             $resultados['documento'] = $linea['idfactura'];
             $resultados['referencia'] = $linea['referencia'];
             $resultados['descripcion'] = $linea['descripcion'];
@@ -603,7 +603,7 @@ class informe_analisisarticulos extends fs_controller
             }
          }
          $this->writer->writeSheetRow($almacen->nombre,
-            array('', '', '', '', L::kardex_SaldoFinal, $sumaSalidasQda[$referencia], $sumaSalidasMonto[$referencia], $sumaIngresosQda[$referencia], $sumaIngresosMonto[$referencia], ($sumaIngresosQda[$referencia]-$sumaSalidasQda[$referencia]), ($sumaIngresosMonto[$referencia]-$sumaSalidasMonto[$referencia]))
+            array('', '', '', '', K::kardex_SaldoFinal, $sumaSalidasQda[$referencia], $sumaSalidasMonto[$referencia], $sumaIngresosQda[$referencia], $sumaIngresosMonto[$referencia], ($sumaIngresosQda[$referencia]-$sumaSalidasQda[$referencia]), ($sumaIngresosMonto[$referencia]-$sumaSalidasMonto[$referencia]))
          );
          $this->writer->writeSheetRow($almacen->nombre,
             array('', '', '', '', '', '', '', '', '', '', '')
@@ -663,6 +663,7 @@ class informe_analisisarticulos extends fs_controller
       $language = ($lang and file_exists('plugins/kardex/lang/lang_'.$lang.'.ini'))?$lang:'es';
       $this->i18n_controller = new i18n_kardex('plugins/kardex/lang/lang_'.$language.'.ini', 'plugins/kardex/langcache/');
       $this->i18n_controller->setForcedLang($language);
+      $this->i18n_controller->setPrefix('K');
       $this->i18n_controller->init();
    }   
 
