@@ -6,7 +6,7 @@
  * License: MIT
  */
 
-class i18n {
+class i18n_kardex {
 
     /**
      * Language file path

@@ -662,7 +662,7 @@ class informe_analisisarticulos extends fs_controller
    
    private function language($lang=false){
       $language = ($lang and file_exists('plugins/kardex/lang/lang_'.$lang.'.ini'))?$lang:'es';
-      $this->i18n_controller = new i18n('plugins/kardex/lang/lang_'.$language.'.ini', 'plugins/kardex/langcache/');
+      $this->i18n_controller = new i18n_kardex('plugins/kardex/lang/lang_'.$language.'.ini', 'plugins/kardex/langcache/');
       $this->i18n_controller->setForcedLang($language);
       $this->i18n_controller->init();
    }   
