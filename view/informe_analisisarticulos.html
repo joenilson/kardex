@@ -87,7 +87,7 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
         </div>
     </div>
     <form id="f_generar_reporte" method="post" action='{$fsc->url()}'>
-        <input type="hidden" name="tipo-reporte" id="tipo-reporte" value='{$fsc->reporte}'>
+        <input type="hidden" name="mostrar_reporte" id="mostrar_reporte" value=''>
         <div class="row">
             <div class="col-sm-2">
                 <div class="form-group">
@@ -152,27 +152,27 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
                 </div>
             </div>
         </div>
-        <div class='col-sm-12'>
+        <div class='col-sm-12' style="margin-bottom: 10px;">
             <label class="radio-inline">
-                <input type="radio" name="mostrar" id="mostrarTodo" value="todo" {if="$fsc->mostrar=='todo'"}checked{/if}> {function="L::kardex_Todo"}
+                <input type="radio" name="mostrar" onClick="document.getElementById('mostrar_reporte').value=this.value" value="todo" {if="$fsc->mostrar=='todo'"}checked{/if}> {function="L::kardex_Todo"}
             </label>
             <label class="radio-inline">
-                <input type="radio" name="mostrar" id="mostrarCompra" value="compra" {if="$fsc->mostrar=='compra'"}checked{/if}> {function="L::kardex_Compra"}
+                <input type="radio" name="mostrar" onClick="document.getElementById('mostrar_reporte').value=this.value" value="compra" {if="$fsc->mostrar=='compra'"}checked{/if}> {function="L::kardex_Compra"}
             </label>
             <label class="radio-inline">
-                <input type="radio" name="mostrar" id="mostrarVenta" value="venta" {if="$fsc->mostrar=='venta'"}checked{/if}> {function="L::kardex_Venta"}
+                <input type="radio" name="mostrar" onClick="document.getElementById('mostrar_reporte').value=this.value" value="venta" {if="$fsc->mostrar=='venta'"}checked{/if}> {function="L::kardex_Venta"}
             </label>
             <label class="radio-inline">
-                <input type="radio" name="mostrar" id="mostrarDevolucionCompra" value="devolucion-compra" {if="$fsc->mostrar=='devolucion-compra'"}checked{/if}> {function="L::kardex_Devolucion"} {function="L::kardex_Compra"}
+                <input type="radio" name="mostrar" onClick="document.getElementById('mostrar_reporte').value=this.value" value="devolucion-compra" {if="$fsc->mostrar=='devolucion-compra'"}checked{/if}> {function="L::kardex_Devolucion"} {function="L::kardex_Compra"}
             </label>
             <label class="radio-inline">
-                <input type="radio" name="mostrar" id="mostrarDevolucionVenta" value="devolucion-venta" {if="$fsc->mostrar=='devolucion-venta'"}checked{/if}> {function="L::kardex_Devolucion"} {function="L::kardex_Venta"}
+                <input type="radio" name="mostrar" onClick="document.getElementById('mostrar_reporte').value=this.value" value="devolucion-venta" {if="$fsc->mostrar=='devolucion-venta'"}checked{/if}> {function="L::kardex_Devolucion"} {function="L::kardex_Venta"}
             </label>
             <label class="radio-inline">
-                <input type="radio" name="mostrar" id="mostrarTransferencia" value="transferencia" {if="$fsc->mostrar=='transferencia'"}checked{/if}> {function="L::kardex_Transferencia"}
+                <input type="radio" name="mostrar" onClick="document.getElementById('mostrar_reporte').value=this.value" value="transferencia" {if="$fsc->mostrar=='transferencia'"}checked{/if}> {function="L::kardex_Transferencia"}
             </label>
             <label class="radio-inline">
-                <input type="radio" name="mostrar" id="mostrarRegularizacion" value="regularizacion" {if="$fsc->mostrar=='regularizacion'"}checked{/if}> {function="L::kardex_Regularizacion"}
+                <input type="radio" name="mostrar" onClick="document.getElementById('mostrar_reporte').value=this.value" value="regularizacion" {if="$fsc->mostrar=='regularizacion'"}checked{/if}> {function="L::kardex_Regularizacion"}
             </label>
         </div>
     </form>
@@ -357,11 +357,12 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
         var almacen = $('#codalmacen').val();
         var familia = $('#codfamilia').val();
         var articulo = $('#referencia').val();
+        var mostrar = $('#mostrar_reporte').val();
         $.ajax({
             type: 'POST',
             url: '{$fsc->url()}',
             async: false,
-            data: 'procesar-reporte=true&inicio=' + inicio + '&fin=' + fin + '&almacen=' + almacen + '&familia=' + familia + '&articulo=' + articulo,
+            data: 'procesar-reporte=true&inicio=' + inicio + '&fin=' + fin + '&almacen=' + almacen + '&familia=' + familia + '&articulo=' + articulo + '&mostrar=' + mostrar,
             success: function (datos) {
 
                 $("#grid_kardex").jqGrid('clearGridData');

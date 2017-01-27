@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Copyright (C) 2016 Joe Nilson             <joenilson@gmail.com>
  * Copyright (C) 2016 Carlos García Gómez    <neorazorx@gmail.com>
@@ -38,654 +39,686 @@ require_once 'plugins/kardex/vendor/php-i18n/i18n.class.php';
  *
  * @author Joe Nilson <joenilson@gmail.com>
  */
-class informe_analisisarticulos extends fs_controller
-{
-   public $resultados;
-   public $resultados_almacen;
-   public $total_resultados;
-   public $familia;
-   public $familias;
-   public $articulo;
-   public $articulos;
-   public $fecha_inicio;
-   public $fecha_fin;
-   public $almacen;
-   public $almacenes;
-   public $stock;
-   public $i18n_controller;
-   public $lista_almacenes;
-   public $fileName;
-   public $documentosDir;
-   public $kardexDir;
-   public $publicPath;
-   public $writer;
-   public $kardex;
-   public $mostrar;
-   public $kardex_setup;
-   public $kardex_ultimo_proceso;
-   public $kardex_procesandose;
-   public $kardex_usuario_procesando;
-   public $kardex_programado;
-   public $loop_horas;
+class informe_analisisarticulos extends fs_controller {
+    public $resultados;
+    public $resultados_almacen;
+    public $total_resultados;
+    public $familia;
+    public $familias;
+    public $articulo;
+    public $articulos;
+    public $fecha_inicio;
+    public $fecha_fin;
+    public $almacen;
+    public $almacenes;
+    public $stock;
+    public $lista;
+    public $i18n_controller;
+    public $lista_almacenes;
+    public $fileName;
+    public $documentosDir;
+    public $kardexDir;
+    public $publicPath;
+    public $writer;
+    public $kardex;
+    public $mostrar;
+    public $kardex_setup;
+    public $kardex_ultimo_proceso;
+    public $kardex_procesandose;
+    public $kardex_usuario_procesando;
+    public $kardex_programado;
+    public $loop_horas;
 
-   public function __construct()
-   {
-      parent::__construct(__CLASS__, "Kardex", 'informes', FALSE, TRUE);
-   }
+    public function __construct() {
+        parent::__construct(__CLASS__, "Kardex", 'informes', FALSE, TRUE);
+    }
 
-   protected function private_core() {
-      $this->familias = new familia();
-      $this->articulos = new articulo();
-      $this->almacenes = new almacen();
-      $this->kardex = new kardex();
-      $this->share_extension();
-      $lang = substr($_SERVER['HTTP_ACCEPT_LANGUAGE'], 0, 2);
-      $this->user_lang = (!isset($this->user->lang))?$lang:'es';
-      $this->language($this->user_lang);
-      $this->fecha_inicio = \date('01-m-Y');
-      $this->fecha_fin = \date('t-m-Y');
-      $this->reporte = '';
-      $this->total_resultados = 0;
-      $this->resultados_almacen = '';
-      $this->mostrar = 'todo';
-      $this->fileName = '';
-      $basepath = dirname(dirname(dirname(__DIR__)));
-      $this->documentosDir = $basepath.DIRECTORY_SEPARATOR.FS_MYDOCS.'documentos';
-      $this->kardexDir = $this->documentosDir.DIRECTORY_SEPARATOR."kardex";
-      $this->publicPath = FS_PATH.FS_MYDOCS.'documentos'.DIRECTORY_SEPARATOR.'kardex';
-      
-      if(!is_dir($this->documentosDir)){
-          mkdir($this->documentosDir);
-      }
-      
-      if(!is_dir($this->kardexDir)){
-          mkdir($this->kardexDir);
-      }
-      
-      $tiporeporte = \filter_input(INPUT_POST, 'procesar-reporte');
+    protected function private_core() {
+        $this->familias = new familia();
+        $this->articulos = new articulo();
+        $this->almacenes = new almacen();
+        $this->kardex = new kardex();
+        $this->share_extension();
+        $lang = substr($_SERVER['HTTP_ACCEPT_LANGUAGE'], 0, 2);
+        $this->user_lang = (!isset($this->user->lang)) ? $lang : 'es';
+        $this->language($this->user_lang);
+        $this->fecha_inicio = \date('01-m-Y');
+        $this->fecha_fin = \date('t-m-Y');
+        $this->reporte = '';
+        $this->total_resultados = 0;
+        $this->resultados_almacen = '';
+        $this->mostrar = 'todo';
+        $this->fileName = '';
+        $basepath = dirname(dirname(dirname(__DIR__)));
+        $this->documentosDir = $basepath . DIRECTORY_SEPARATOR . FS_MYDOCS . 'documentos';
+        $this->kardexDir = $this->documentosDir . DIRECTORY_SEPARATOR . "kardex";
+        $this->publicPath = FS_PATH . FS_MYDOCS . 'documentos' . DIRECTORY_SEPARATOR . 'kardex';
 
-      for($x=0; $x<25;$x++)
-      {
-         $this->loop_horas[]=str_pad($x, 2,"0", STR_PAD_LEFT);
-      }
+        if (!is_dir($this->documentosDir)) {
+            mkdir($this->documentosDir);
+        }
 
-      $fsvar = new fs_var();
-      $this->kardex_setup = $fsvar->array_get(
-         array(
-         'kardex_ultimo_proceso' => '',
-         'kardex_cron' => '',
-         'kardex_programado' => '',
-         'kardex_procesandose' => 'FALSE',
-         'kardex_usuario_procesando' => ''
-         ), FALSE
-      );
-      
-      $cancelar_kardex = \filter_input(INPUT_GET, 'cancelar_kardex');
-      if(!empty($cancelar_kardex)){
-          $fsvar->array_save(array(
+        if (!is_dir($this->kardexDir)) {
+            mkdir($this->kardexDir);
+        }
+       
+        //Creamos un array para el selector de horas para cron
+        for ($x = 0; $x < 25; $x++) {
+            $this->loop_horas[] = str_pad($x, 2, "0", STR_PAD_LEFT);
+        }
+
+        $fsvar = new fs_var();
+        $this->kardex_setup = $fsvar->array_get(
+                array(
+            'kardex_ultimo_proceso' => '',
+            'kardex_cron' => '',
+            'kardex_programado' => '',
             'kardex_procesandose' => 'FALSE',
             'kardex_usuario_procesando' => ''
-         ));
-      }
-      
-      $comparacion_fechas = (date('Y-m-d', strtotime($this->kardex_setup['kardex_ultimo_proceso'])) == date('Y-m-d', strtotime($this->kardex->ultimo_proceso())));
-      $this->kardex_ultimo_proceso = ($comparacion_fechas)?$this->kardex_setup['kardex_ultimo_proceso']:$this->kardex->ultimo_proceso();
-      $this->kardex_procesandose = ($this->kardex_setup['kardex_procesandose']=='TRUE')?TRUE:FALSE;
-      $this->kardex_usuario_procesando = ($this->kardex_setup['kardex_usuario_procesando'])?$this->kardex_setup['kardex_usuario_procesando']:FALSE;
-      $this->kardex_cron = $this->kardex_setup['kardex_cron'];
-      $this->kardex_programado = $this->kardex_setup['kardex_programado'];
-      if(!empty($tiporeporte)){
-         $inicio = \date('Y-m-d', strtotime(\filter_input(INPUT_POST, 'inicio')));
-         $fin = \date('Y-m-d', strtotime(\filter_input(INPUT_POST, 'fin')));
-         $almacen = \filter_input(INPUT_POST, 'almacen');
-         $familia = \filter_input(INPUT_POST, 'familia');
-         $articulo = \filter_input(INPUT_POST, 'articulo');
-         $this->fecha_inicio = $inicio;
-         $this->fecha_fin = $fin;
-         $this->reporte = $tiporeporte;
-         $this->almacen = ($almacen!='null')?$this->comma_separated_to_array($almacen):NULL;
-         $this->familia = ($familia!='null')?$this->comma_separated_to_array($familia):NULL;
-         $this->articulo = ($articulo!='null')?$this->comma_separated_to_array($articulo):NULL;
-         $this->kardex_almacen();
-      }
+                ), FALSE
+        );
 
-      $kardex = \filter_input(INPUT_GET, 'procesar-kardex');
-      if(!empty($kardex)){
-         $kardex_inicio = \filter_input(INPUT_GET, 'kardex_inicio');
-         $kardex_fin = \filter_input(INPUT_GET, 'kardex_fin');
-         $k = new kardex();
-         if(!empty($kardex_inicio)){
-            $k->fecha_inicio = $kardex_inicio;
-            $k->fecha_fin = $kardex_fin;
-         }
-         $this->template = false;
-         header('Content-Type: application/json');
-         $k->procesar_kardex($this->user->nick);
-      }
+        $cancelar_kardex = \filter_input(INPUT_GET, 'cancelar_kardex');
+        if (!empty($cancelar_kardex)) {
+            $fsvar->array_save(array(
+                'kardex_procesandose' => 'FALSE',
+                'kardex_usuario_procesando' => ''
+            ));
+        }
 
-      $opciones_kardex = \filter_input(INPUT_POST, 'opciones-kardex');
-      if(!empty($opciones_kardex)){
-         $data = array();
-         $op_kardex_cron = \filter_input(INPUT_POST, 'kardex_cron');
-         $op_kardex_programado = \filter_input(INPUT_POST, 'kardex_programado');
-         $kardex_cron = ($op_kardex_cron == 'TRUE')?"TRUE":"FALSE";
-         $kardex_programado = $op_kardex_programado;
-         $kardex_config =
-            array(
-               'kardex_cron' => $kardex_cron,
-               'kardex_programado' => $kardex_programado
+        $comparacion_fechas = (date('Y-m-d', strtotime($this->kardex_setup['kardex_ultimo_proceso'])) == date('Y-m-d', strtotime($this->kardex->ultimo_proceso())));
+        $this->kardex_ultimo_proceso = ($comparacion_fechas) ? $this->kardex_setup['kardex_ultimo_proceso'] : $this->kardex->ultimo_proceso();
+        $this->kardex_procesandose = ($this->kardex_setup['kardex_procesandose'] == 'TRUE') ? TRUE : FALSE;
+        $this->kardex_usuario_procesando = ($this->kardex_setup['kardex_usuario_procesando']) ? $this->kardex_setup['kardex_usuario_procesando'] : FALSE;
+        $this->kardex_cron = $this->kardex_setup['kardex_cron'];
+        $this->kardex_programado = $this->kardex_setup['kardex_programado'];
+        
+        $procesar_reporte = \filter_input(INPUT_POST, 'procesar-reporte');
+        if (!empty($procesar_reporte)) {
+            $inicio = \date('Y-m-d', strtotime(\filter_input(INPUT_POST, 'inicio')));
+            $fin = \date('Y-m-d', strtotime(\filter_input(INPUT_POST, 'fin')));
+            $almacen = \filter_input(INPUT_POST, 'almacen');
+            $familia = \filter_input(INPUT_POST, 'familia');
+            $articulo = \filter_input(INPUT_POST, 'articulo');
+            $mostrar = \filter_input(INPUT_POST, 'mostrar');
+            $this->mostrar = ($mostrar)?$mostrar:$this->mostrar;
+            $this->fecha_inicio = $inicio;
+            $this->fecha_fin = $fin;
+            $this->reporte = $procesar_reporte;
+            $this->almacen = ($almacen != 'null') ? $this->comma_separated_to_array($almacen) : NULL;
+            $this->familia = ($familia != 'null') ? $this->comma_separated_to_array($familia) : NULL;
+            $this->articulo = ($articulo != 'null') ? $this->comma_separated_to_array($articulo) : NULL;
+            $this->kardex_almacen();
+        }
+
+        $kardex = \filter_input(INPUT_GET, 'procesar-kardex');
+        if (!empty($kardex)) {
+            $kardex_inicio = \filter_input(INPUT_GET, 'kardex_inicio');
+            $kardex_fin = \filter_input(INPUT_GET, 'kardex_fin');
+            $k = new kardex();
+            if (!empty($kardex_inicio)) {
+                $k->fecha_inicio = $kardex_inicio;
+                $k->fecha_fin = $kardex_fin;
+            }
+            $this->template = false;
+            header('Content-Type: application/json');
+            $k->procesar_kardex($this->user->nick);
+        }
+
+        $opciones_kardex = \filter_input(INPUT_POST, 'opciones-kardex');
+        if (!empty($opciones_kardex)) {
+            $data = array();
+            $op_kardex_cron = \filter_input(INPUT_POST, 'kardex_cron');
+            $op_kardex_programado = \filter_input(INPUT_POST, 'kardex_programado');
+            $kardex_cron = ($op_kardex_cron == 'TRUE') ? "TRUE" : "FALSE";
+            $kardex_programado = $op_kardex_programado;
+            $kardex_config = array(
+                        'kardex_cron' => $kardex_cron,
+                        'kardex_programado' => $kardex_programado
             );
-         if($fsvar->array_save($kardex_config)){
-            $data['success']=true;
-            $data['mensaje']='Cambios grabados correctamente';
-         }
-         else
-         {
-            $data['success']=false;
-            $data['mensaje']='Ocurrio un error al grabar las opciones, intentelo nuevamente';
-         }
-         $this->template = false;
-         header('Content-Type: application/json');
-         echo json_encode($data);
-      }
-   }
+            if ($fsvar->array_save($kardex_config)) {
+                $data['success'] = true;
+                $data['mensaje'] = K::CambiosGrabadosCorrectamente;
+            } else {
+                $data['success'] = false;
+                $data['mensaje'] = K::CambiosNoGrabados;
+            }
+            $this->template = false;
+            header('Content-Type: application/json');
+            echo json_encode($data);
+        }
+    }
 
-   public function kardex_almacen(){
-      $resumen = array();
-      $this->fileName = $this->publicPath.DIRECTORY_SEPARATOR.'Kardex'."_".$this->user->nick.".xlsx";
-      if(file_exists($this->fileName)){
-         unlink($this->fileName);
-      }
-      $header = array(
-         K::kardex_Fecha=>'date',
-         K::kardex_Documento=>'string',
-         K::kardex_Numero=>'string',
-         K::kardex_Referencia=>'string',
-         K::kardex_Articulo=>'string',
-         K::kardex_Salida=>'#,###,###.##',
-         K::kardex_SalidaValorizada=>'#,###,###.##',
-         K::kardex_Ingreso=>'#,###,###.##',
-         K::kardex_IngresoValorizado=>'#,###,###.##',
-         K::kardex_Saldo=>'#,###,###.##',
-         K::kardex_SaldoValorizado=>'#,###,###.##');
-      $this->writer = new XLSXWriter();
+    public function kardex_almacen() {
+        $resumen = array();
+        $this->fileName = $this->publicPath . DIRECTORY_SEPARATOR . K::kardex_Kardex . "_" . $this->user->nick . ".xlsx";
+        if (file_exists($this->fileName)) {
+            unlink($this->fileName);
+        }
+        $header = array(
+            K::kardex_Fecha => 'date',
+            K::kardex_Documento => 'string',
+            K::kardex_Numero => 'string',
+            K::kardex_Referencia => 'string',
+            K::kardex_Articulo => 'string',
+            K::kardex_Salida => '#,###,###.##',
+            K::kardex_SalidaValorizada => '#,###,###.##',
+            K::kardex_Ingreso => '#,###,###.##',
+            K::kardex_IngresoValorizado => '#,###,###.##',
+            K::kardex_Saldo => '#,###,###.##',
+            K::kardex_SaldoValorizado => '#,###,###.##');
+        $this->writer = new XLSXWriter();
 
-      foreach($this->almacen as $index=>$codigo)
-      {
-         $almacen0 = $this->almacenes->get($codigo);
-         $this->writer->writeSheetHeader($almacen0->nombre, $header );
-         $resumen = array_merge($resumen, $this->stock_query($almacen0));
-      }
-      $this->writer->writeToFile($this->fileName);
-      gc_collect_cycles();
-      $this->resultados_almacen = $resumen;
-      $data['rows'] = $resumen;
-      $data['filename'] = $this->fileName;
-      $this->template = false;
-      header('Content-Type: application/json');
-      echo json_encode($data);
-   }
+        foreach ($this->almacen as $index => $codigo) {
+            $almacen0 = $this->almacenes->get($codigo);
+            $this->writer->writeSheetHeader($almacen0->nombre, $header);
+            $resumen = array_merge($resumen, $this->stock_query($almacen0));
+        }
+        $this->writer->writeToFile($this->fileName);
+        gc_collect_cycles();
+        $this->resultados_almacen = $resumen;
+        $data['rows'] = $resumen;
+        $data['filename'] = $this->fileName;
+        $this->template = false;
+        header('Content-Type: application/json');
+        echo json_encode($data);
+    }
 
-    public function stock_query($almacen){
-      //Validamos el listado de Familias seleccionadas
-      $codfamilia = ($this->familia)?" and codfamilia IN ({$this->familia_data()})":" ";
+    public function stock_query($almacen) {
+        //Validamos el listado de Familias seleccionadas
+        $codfamilia = ($this->familia) ? " and codfamilia IN ({$this->familia_data()})" : " ";
 
-      //Validamos el listado de Productos seleccionados
-      $referencia = ($this->articulo)?" and referencia IN ({$this->articulo_data()})":" ";
+        //Validamos el listado de Productos seleccionados
+        $referencia = ($this->articulo) ? " and referencia IN ({$this->articulo_data()})" : " ";
 
-      //Generamos el select para la subconsulta
-      $productos = "SELECT referencia FROM articulos where bloqueado = false and nostock = false $codfamilia $referencia";
-      $lista = array();
+        //Generamos el select para la subconsulta
+        $productos = "SELECT referencia FROM articulos where bloqueado = false and nostock = false $codfamilia $referencia";
+        $this->lista = array();
+        
+        if($this->mostrar=='todo'){
+            $this->SaldoInicial($almacen,$referencia);
+        }
+        
+        if($this->mostrar == 'todo' OR $this->mostrar=='compra'){
+            $this->Compras($almacen,$productos);
+        }
+        if($this->mostrar == 'todo' OR $this->mostrar=='devolucion-compra'){
+            $this->devolucionCompras($almacen,$productos);
+        }
+        if($this->mostrar == 'todo' OR $this->mostrar=='regularizacion'){
+            $this->Regularizaciones($almacen,$productos);
+        }
+        if($this->mostrar == 'todo' OR $this->mostrar=='transferencia'){
+            $this->Transferencias($almacen,$productos);
+        }
+        if($this->mostrar == 'todo' OR $this->mostrar=='venta'){
+            $this->Ventas($almacen,$productos);
+        }
+        if($this->mostrar == 'todo' OR $this->mostrar=='devolucion-venta'){
+            $this->devolucionVentas($almacen,$productos);
+        }
+        
+        return $this->generar_resultados($this->lista, $almacen);
+    }
+    
+    public function SaldoInicial($almacen,$referencia){
+        /*
+         * Obtenemos el saldo inicial para el rango de fechas de la tabla de Inventario Diario
+         */
+        $listado = $this->kardex->saldo($this->fecha_inicio, $almacen->codalmacen, $referencia);
+        if ($listado) {
+            foreach ($listado as $linea) {
+                $resultados['codalmacen'] = $almacen->codalmacen;
+                $resultados['nombre'] = $almacen->nombre;
+                $resultados['fecha'] = $this->fecha_inicio;
+                $resultados['tipo_documento'] = K::kardex_SaldoInicial;
+                $resultados['documento'] = 'STOCK';
+                $resultados['referencia'] = $linea['referencia'];
+                $resultados['descripcion'] = $linea['descripcion'];
+                $resultados['saldo_cantidad'] = $linea['cantidad_inicial'];
+                $resultados['saldo_monto'] = $linea['monto_inicial'];
+                $resultados['salida_cantidad'] = 0;
+                $resultados['ingreso_cantidad'] = 0;
+                $resultados['salida_monto'] = 0;
+                $resultados['ingreso_monto'] = 0;
+                $this->lista[$this->fecha_inicio][] = $resultados;
+                $this->total_resultados++;
+            }
+        }
+    }
 
-      /*
-       * Obtenemos el saldo inicial para el rango de fechas de la tabla de Inventario Diario
-       */
-      $listado = $this->kardex->saldo($this->fecha_inicio, $almacen->codalmacen, $referencia);
-      if($listado){
-         foreach($listado as $linea){
-            $resultados['codalmacen'] = $almacen->codalmacen;
-            $resultados['nombre'] = $almacen->nombre;
-            $resultados['fecha'] = $this->fecha_inicio;
-            $resultados['tipo_documento'] = K::kardex_SaldoInicial;
-            $resultados['documento'] = 'STOCK';
-            $resultados['referencia'] = $linea['referencia'];
-            $resultados['descripcion'] = $linea['descripcion'];
-            $resultados['saldo_cantidad'] = $linea['cantidad_inicial'];
-            $resultados['saldo_monto'] = $linea['monto_inicial'];
-            $resultados['salida_cantidad'] = 0;
-            $resultados['ingreso_cantidad'] = 0;
-            $resultados['salida_monto'] = 0;
-            $resultados['ingreso_monto'] = 0;
-            $lista[$this->fecha_inicio][] = $resultados;
-            $this->total_resultados++;
-         }
-      }
-      /*
-       * Generamos la informacion de los albaranes de proveedor asociados a facturas no anuladas
-       */
-      $sql_albaranes = "select codalmacen,ac.fecha,ac.idalbaran,a.referencia,a.descripcion, coddivisa, tasaconv,sum(cantidad) as cantidad, sum(pvptotal) as monto
+    public function Compras($almacen,$productos) {
+        /*
+         * Generamos la informacion de los albaranes de proveedor asociados a facturas no anuladas
+         */
+        $sql_albaranes = "select codalmacen,ac.fecha,ac.idalbaran,a.referencia,a.descripcion, coddivisa, tasaconv,sum(cantidad) as cantidad, sum(pvptotal) as monto
          from albaranesprov as ac
          join lineasalbaranesprov as l ON (ac.idalbaran=l.idalbaran)
          JOIN articulos as a ON(a.referencia = l.referencia)
-         where codalmacen = '".stripcslashes(strip_tags(trim($almacen->codalmacen)))."' AND fecha between '".$this->fecha_inicio."' and '".$this->fecha_fin."'
+         where codalmacen = '" . stripcslashes(strip_tags(trim($almacen->codalmacen))) . "' AND fecha between '" . $this->fecha_inicio . "' and '" . $this->fecha_fin . "'
          and idfactura is not null
          and l.referencia in ($productos)
          group by codalmacen,ac.fecha,ac.idalbaran,a.referencia,a.descripcion, coddivisa, tasaconv
          order by codalmacen,a.referencia,fecha;";
-      //echo $sql_albaranes;
-      $data = $this->db->select($sql_albaranes);
-      if($data){
-         foreach($data as $linea){
-            $linea['monto'] = ($linea['coddivisa']!=$this->empresa->coddivisa)?$this->euro_convert($this->divisa_convert($linea['monto'], $linea['coddivisa'], 'EUR')):$linea['monto'];
-            $resultados['codalmacen'] = $linea['codalmacen'];
-            $resultados['nombre'] = $almacen->nombre;
-            $resultados['fecha'] = $linea['fecha'];
-            $resultados['tipo_documento'] = ucfirst(FS_ALBARAN)." ".K::kardex_Compra;
-            $resultados['documento'] = $linea['idalbaran'];
-            $resultados['referencia'] = $linea['referencia'];
-            $resultados['descripcion'] = stripcslashes($linea['descripcion']);
-            $resultados['salida_cantidad'] = ($linea['cantidad']<=0)?$linea['cantidad']:0;
-            $resultados['ingreso_cantidad'] = ($linea['cantidad']>=0)?$linea['cantidad']:0;
-            $resultados['salida_monto'] = ($linea['monto']<=0)?$linea['monto']:0;
-            $resultados['ingreso_monto'] = ($linea['monto']>=0)?$linea['monto']:0;
-            $lista[$linea['fecha']][] = $resultados;
-            $this->total_resultados++;
-            //$this->divisa_convert($precio, $coddivisa_desde, $coddivisa);
-         }
-      }
+        //echo $sql_albaranes;
+        $data = $this->db->select($sql_albaranes);
+        if ($data) {
+            foreach ($data as $linea) {
+                $linea['monto'] = ($linea['coddivisa'] != $this->empresa->coddivisa) ? $this->euro_convert($this->divisa_convert($linea['monto'], $linea['coddivisa'], 'EUR')) : $linea['monto'];
+                $resultados['codalmacen'] = $linea['codalmacen'];
+                $resultados['nombre'] = $almacen->nombre;
+                $resultados['fecha'] = $linea['fecha'];
+                $resultados['tipo_documento'] = ucfirst(FS_ALBARAN) . " " . K::kardex_Compra;
+                $resultados['documento'] = $linea['idalbaran'];
+                $resultados['referencia'] = $linea['referencia'];
+                $resultados['descripcion'] = stripcslashes($linea['descripcion']);
+                $resultados['salida_cantidad'] = ($linea['cantidad'] <= 0) ? $linea['cantidad'] : 0;
+                $resultados['ingreso_cantidad'] = ($linea['cantidad'] >= 0) ? $linea['cantidad'] : 0;
+                $resultados['salida_monto'] = ($linea['monto'] <= 0) ? $linea['monto'] : 0;
+                $resultados['ingreso_monto'] = ($linea['monto'] >= 0) ? $linea['monto'] : 0;
+                $this->lista[$linea['fecha']][] = $resultados;
+                $this->total_resultados++;
+            }
+        }
 
-      /*
-       * Generamos la informacion de las facturas de proveedor ingresadas
-       * que no esten asociadas a un albaran de proveedor
-       */
-      $sql_facturasprov = "select codalmacen,fc.fecha,fc.idfactura,referencia,descripcion, coddivisa, tasaconv,sum(cantidad) as cantidad, sum(pvptotal) as monto
+        /*
+         * Generamos la informacion de las facturas de proveedor ingresadas
+         * que no esten asociadas a un albaran de proveedor
+         */
+        $sql_facturasprov = "select codalmacen,fc.fecha,fc.idfactura,referencia,descripcion, coddivisa, tasaconv,sum(cantidad) as cantidad, sum(pvptotal) as monto
          from facturasprov as fc
          join lineasfacturasprov as l ON (fc.idfactura=l.idfactura)
-         where codalmacen = '".stripcslashes(strip_tags(trim($almacen->codalmacen)))."' AND fecha between '".$this->fecha_inicio."' and '".$this->fecha_fin."'
+         where codalmacen = '" . stripcslashes(strip_tags(trim($almacen->codalmacen))) . "' AND fecha between '" . $this->fecha_inicio . "' and '" . $this->fecha_fin . "'
          and anulada=FALSE and idalbaran is null
          and l.referencia in ($productos)
          group by codalmacen,fc.fecha,fc.idfactura,referencia,descripcion, coddivisa, tasaconv
          order by codalmacen,referencia,fecha;";
-      $data = $this->db->select($sql_facturasprov);
-      if($data){
-         foreach($data as $linea){
-            $linea['monto'] = ($linea['coddivisa']!=$this->empresa->coddivisa)?$this->euro_convert($this->divisa_convert($linea['monto'], $linea['coddivisa'], 'EUR')):$linea['monto'];
-            $resultados['codalmacen'] = $linea['codalmacen'];
-            $resultados['nombre'] = $almacen->nombre;
-            $resultados['fecha'] = $linea['fecha'];
-            $resultados['tipo_documento'] = ucfirst(FS_FACTURA)." ".K::kardex_Compra;
-            $resultados['documento'] = $linea['idfactura'];
-            $resultados['referencia'] = $linea['referencia'];
-            $resultados['descripcion'] = $linea['descripcion'];
-            $resultados['salida_cantidad'] = ($linea['cantidad']<=0)?$linea['cantidad']:0;
-            $resultados['ingreso_cantidad'] = ($linea['cantidad']>=0)?$linea['cantidad']:0;
-            $resultados['salida_monto'] = ($linea['monto']<=0)?$linea['monto']:0;
-            $resultados['ingreso_monto'] = ($linea['monto']>=0)?$linea['monto']:0;
-            $lista[$linea['fecha']][] = $resultados;
-            $this->total_resultados++;
-         }
-      }
-      
-            /*
-       * Generamos la informacion de las regularizaciones que se hayan hecho a los stocks
-       */
-      $sql_regstocks = "select codalmacen, fecha, l.idstock, a.referencia, motivo, sum(cantidadfin) as cantidad, descripcion, costemedio
-         from lineasregstocks AS ls
-         JOIN stocks as l ON(ls.idstock = l.idstock)
-         JOIN articulos as a ON(a.referencia = l.referencia)
-         where codalmacen = '".stripcslashes(strip_tags(trim($almacen->codalmacen)))."' AND fecha between '".$this->fecha_inicio."' and '".$this->fecha_fin."'
-         and l.referencia IN ($productos)
-         group by l.codalmacen, fecha, l.idstock, a.referencia, motivo, descripcion, costemedio
-         order by codalmacen,a.referencia,fecha;";
-      $data = $this->db->select($sql_regstocks);
-      if($data){
-         foreach($data as $linea){
-            $resultados['codalmacen'] = $linea['codalmacen'];
-            $resultados['nombre'] = $almacen->nombre;
-            $resultados['fecha'] = $linea['fecha'];
-            $resultados['tipo_documento'] = K::kardex_Regularizacion;
-            $resultados['documento'] = $linea['idstock'];
-            $resultados['referencia'] = $linea['referencia'];
-            $resultados['descripcion'] = $linea['descripcion'];
-            $resultados['salida_cantidad'] = ($linea['cantidad']<=0)?$linea['cantidad']:0;
-            $resultados['ingreso_cantidad'] = ($linea['cantidad']>=0)?$linea['cantidad']:0;
-            $resultados['salida_monto'] = ($linea['cantidad']<=0)?($linea['costemedio']*$linea['cantidad']):0;
-            $resultados['ingreso_monto'] = ($linea['cantidad']>=0)?($linea['costemedio']*$linea['cantidad']):0;
-            $lista[$linea['fecha']][] = $resultados;
-            $this->total_resultados++;
-         }
-      }
+        $data = $this->db->select($sql_facturasprov);
+        if ($data) {
+            foreach ($data as $linea) {
+                $linea['monto'] = ($linea['coddivisa'] != $this->empresa->coddivisa) ? $this->euro_convert($this->divisa_convert($linea['monto'], $linea['coddivisa'], 'EUR')) : $linea['monto'];
+                $resultados['codalmacen'] = $linea['codalmacen'];
+                $resultados['nombre'] = $almacen->nombre;
+                $resultados['fecha'] = $linea['fecha'];
+                $resultados['tipo_documento'] = ucfirst(FS_FACTURA) . " " . K::kardex_Compra;
+                $resultados['documento'] = $linea['idfactura'];
+                $resultados['referencia'] = $linea['referencia'];
+                $resultados['descripcion'] = $linea['descripcion'];
+                $resultados['salida_cantidad'] = ($linea['cantidad'] <= 0) ? $linea['cantidad'] : 0;
+                $resultados['ingreso_cantidad'] = ($linea['cantidad'] >= 0) ? $linea['cantidad'] : 0;
+                $resultados['salida_monto'] = ($linea['monto'] <= 0) ? $linea['monto'] : 0;
+                $resultados['ingreso_monto'] = ($linea['monto'] >= 0) ? $linea['monto'] : 0;
+                $this->lista[$linea['fecha']][] = $resultados;
+                $this->total_resultados++;
+            }
+        }
+    }
 
-       /*
-       * Generamos la informacion de las transferencias por salida que se hayan hecho a los stocks
-       */
-      $sql_regstocks = "select codalmaorigen, fecha, l.idtrans, a.referencia, sum(cantidad) as cantidad, a.descripcion, costemedio
-         from lineastransstock AS ls
-         JOIN transstock as l ON(ls.idtrans = l.idtrans)
-         JOIN articulos as a ON(a.referencia = ls.referencia)
-         where codalmaorigen = '".stripcslashes(strip_tags(trim($almacen->codalmacen)))."' AND fecha between '".$this->fecha_inicio."' and '".$this->fecha_fin."'
-         and ls.referencia IN ($productos)
-         group by l.codalmaorigen, fecha, l.idtrans, a.referencia, a.descripcion, costemedio
-         order by codalmaorigen,a.referencia,fecha;";
-      //echo $sql_regstocks;
-      $data = $this->db->select($sql_regstocks);
-      if($data){
-         foreach($data as $linea){
-            $resultados['codalmacen'] = $linea['codalmaorigen'];
-            $resultados['nombre'] = $almacen->nombre;
-            $resultados['fecha'] = $linea['fecha'];
-            $resultados['tipo_documento'] = K::kardex_Transferencia;
-            $resultados['documento'] = $linea['idtrans'];
-            $resultados['referencia'] = $linea['referencia'];
-            $resultados['descripcion'] = $linea['descripcion'];
-            $resultados['salida_cantidad'] = ($linea['cantidad']>=0)?$linea['cantidad']:0;
-            $resultados['ingreso_cantidad'] = 0;
-            $resultados['salida_monto'] = ($linea['cantidad']>=0)?($linea['costemedio']*$linea['cantidad']):0;
-            $resultados['ingreso_monto'] = 0;
-            $lista[$linea['fecha']][] = $resultados;
-            $this->total_resultados++;
-         }
-      }
+    public function devolucionCompras($almacen,$productos) {
+        
+    }
 
-       /*
-       * Generamos la informacion de las transferencias por ingresos que se hayan hecho a los stocks
-       */
-      $sql_regstocks = "select codalmadestino, fecha, l.idtrans, a.referencia, sum(cantidad) as cantidad, a.descripcion, costemedio
-         from lineastransstock AS ls
-         JOIN transstock as l ON(ls.idtrans = l.idtrans)
-         JOIN articulos as a ON(a.referencia = ls.referencia)
-         where codalmadestino = '".stripcslashes(strip_tags(trim($almacen->codalmacen)))."' AND fecha between '".$this->fecha_inicio."' and '".$this->fecha_fin."'
-         and ls.referencia IN ($productos)
-         group by l.codalmadestino, fecha, l.idtrans, a.referencia, a.descripcion, costemedio
-         order by codalmadestino,a.referencia,fecha;";
-      $data = $this->db->select($sql_regstocks);
-      if($data){
-         foreach($data as $linea){
-            $resultados['codalmacen'] = $linea['codalmadestino'];
-            $resultados['nombre'] = $almacen->nombre;
-            $resultados['fecha'] = $linea['fecha'];
-            $resultados['tipo_documento'] = K::kardex_Transferencia;
-            $resultados['documento'] = $linea['idtrans'];
-            $resultados['referencia'] = $linea['referencia'];
-            $resultados['descripcion'] = $linea['descripcion'];
-            $resultados['salida_cantidad'] = 0;
-            $resultados['ingreso_cantidad'] = ($linea['cantidad']>=0)?$linea['cantidad']:0;
-            $resultados['salida_monto'] = 0;
-            $resultados['ingreso_monto'] = ($linea['cantidad']>=0)?($linea['costemedio']*$linea['cantidad']):0;
-            $lista[$linea['fecha']][] = $resultados;
-            $this->total_resultados++;
-         }
-      }
-
-      /*
-       * Generamos la informacion de los albaranes asociados a facturas no anuladas
-       */
-      $sql_albaranes = "select codalmacen,ac.fecha,ac.idalbaran,referencia,descripcion,coddivisa, tasaconv,sum(cantidad) as cantidad, sum(pvptotal) as monto
+    public function Ventas($almacen,$productos) {
+        /*
+         * Generamos la informacion de los albaranes asociados a facturas no anuladas
+         */
+        $sql_albaranes = "select codalmacen,ac.fecha,ac.idalbaran,referencia,descripcion,coddivisa, tasaconv,sum(cantidad) as cantidad, sum(pvptotal) as monto
          from albaranescli as ac
          join lineasalbaranescli as l ON (ac.idalbaran=l.idalbaran)
-         where codalmacen = '".stripcslashes(strip_tags(trim($almacen->codalmacen)))."' AND fecha between '".$this->fecha_inicio."' and '".$this->fecha_fin."'
+         where codalmacen = '" . stripcslashes(strip_tags(trim($almacen->codalmacen))) . "' AND fecha between '" . $this->fecha_inicio . "' and '" . $this->fecha_fin . "'
          and idfactura is not null
          and l.referencia in ($productos)
          group by codalmacen,ac.fecha,ac.idalbaran,referencia,descripcion,coddivisa,tasaconv
          order by codalmacen,referencia,fecha;";
-      $data = $this->db->select($sql_albaranes);
-      if($data){
-         foreach($data as $linea){
-            $linea['monto'] = ($linea['coddivisa']!=$this->empresa->coddivisa)?$this->euro_convert($this->divisa_convert($linea['monto'], $linea['coddivisa'], 'EUR')):$linea['monto'];
-            $resultados['codalmacen'] = $linea['codalmacen'];
-            $resultados['nombre'] = $almacen->nombre;
-            $resultados['fecha'] = $linea['fecha'];
-            $resultados['tipo_documento'] = ucfirst(FS_ALBARAN)." ".K::kardex_Venta;
-            $resultados['documento'] = $linea['idalbaran'];
-            $resultados['referencia'] = $linea['referencia'];
-            $resultados['descripcion'] = $linea['descripcion'];
-            $resultados['salida_cantidad'] = ($linea['cantidad']>=0)?$linea['cantidad']:0;
-            $resultados['ingreso_cantidad'] = ($linea['cantidad']<=0)?$linea['cantidad']:0;
-            $resultados['salida_monto'] = ($linea['monto']>=0)?$linea['monto']:0;
-            $resultados['ingreso_monto'] = ($linea['monto']<=0)?$linea['monto']:0;
-            $lista[$linea['fecha']][] = $resultados;
-            $this->total_resultados++;
-         }
-      }
+        $data = $this->db->select($sql_albaranes);
+        if ($data) {
+            foreach ($data as $linea) {
+                $linea['monto'] = ($linea['coddivisa'] != $this->empresa->coddivisa) ? $this->euro_convert($this->divisa_convert($linea['monto'], $linea['coddivisa'], 'EUR')) : $linea['monto'];
+                $resultados['codalmacen'] = $linea['codalmacen'];
+                $resultados['nombre'] = $almacen->nombre;
+                $resultados['fecha'] = $linea['fecha'];
+                $resultados['tipo_documento'] = ucfirst(FS_ALBARAN) . " " . K::kardex_Venta;
+                $resultados['documento'] = $linea['idalbaran'];
+                $resultados['referencia'] = $linea['referencia'];
+                $resultados['descripcion'] = $linea['descripcion'];
+                $resultados['salida_cantidad'] = ($linea['cantidad'] >= 0) ? $linea['cantidad'] : 0;
+                $resultados['ingreso_cantidad'] = ($linea['cantidad'] <= 0) ? $linea['cantidad'] : 0;
+                $resultados['salida_monto'] = ($linea['monto'] >= 0) ? $linea['monto'] : 0;
+                $resultados['ingreso_monto'] = ($linea['monto'] <= 0) ? $linea['monto'] : 0;
+                $this->lista[$linea['fecha']][] = $resultados;
+                $this->total_resultados++;
+            }
+        }
 
-      /*
-       * Generamos la informacion de los albaranes no asociados a facturas
-       */
-      $sql_albaranes_sin_factura = "select codalmacen,ac.fecha,ac.idalbaran,referencia,descripcion,coddivisa, tasaconv,sum(cantidad) as cantidad, sum(pvptotal) as monto
+        /*
+         * Generamos la informacion de los albaranes no asociados a facturas
+         */
+        $sql_albaranes_sin_factura = "select codalmacen,ac.fecha,ac.idalbaran,referencia,descripcion,coddivisa, tasaconv,sum(cantidad) as cantidad, sum(pvptotal) as monto
          from albaranescli as ac
          join lineasalbaranescli as l ON (ac.idalbaran=l.idalbaran)
-         where codalmacen = '".stripcslashes(strip_tags(trim($almacen->codalmacen)))."' AND fecha between '".$this->fecha_inicio."' and '".$this->fecha_fin."'
+         where codalmacen = '" . stripcslashes(strip_tags(trim($almacen->codalmacen))) . "' AND fecha between '" . $this->fecha_inicio . "' and '" . $this->fecha_fin . "'
          and idfactura is null
          and l.referencia in ($productos)
          group by codalmacen,ac.fecha,ac.idalbaran,referencia,descripcion,coddivisa, tasaconv
          order by codalmacen,referencia,fecha;";
-      $data = $this->db->select($sql_albaranes_sin_factura);
-      if($data){
-         foreach($data as $linea){
-            $linea['monto'] = ($linea['coddivisa']!=$this->empresa->coddivisa)?$this->euro_convert($this->divisa_convert($linea['monto'], $linea['coddivisa'], 'EUR')):$linea['monto'];
-            $resultados['codalmacen'] = $linea['codalmacen'];
-            $resultados['nombre'] = $almacen->nombre;
-            $resultados['fecha'] = $linea['fecha'];
-            $resultados['tipo_documento'] = ucfirst(FS_ALBARAN)." ".K::kardex_VentaNoFacturada;
-            $resultados['documento'] = $linea['idalbaran'];
-            $resultados['referencia'] = $linea['referencia'];
-            $resultados['descripcion'] = $linea['descripcion'];
-            $resultados['salida_cantidad'] = ($linea['cantidad']>=0)?$linea['cantidad']:0;
-            $resultados['ingreso_cantidad'] = ($linea['cantidad']<=0)?$linea['cantidad']:0;
-            $resultados['salida_monto'] = ($linea['monto']>=0)?$linea['monto']:0;
-            $resultados['ingreso_monto'] = ($linea['monto']<=0)?$linea['monto']:0;
-            $lista[$linea['fecha']][] = $resultados;
-            $this->total_resultados++;
-         }
-      }
+        $data = $this->db->select($sql_albaranes_sin_factura);
+        if ($data) {
+            foreach ($data as $linea) {
+                $linea['monto'] = ($linea['coddivisa'] != $this->empresa->coddivisa) ? $this->euro_convert($this->divisa_convert($linea['monto'], $linea['coddivisa'], 'EUR')) : $linea['monto'];
+                $resultados['codalmacen'] = $linea['codalmacen'];
+                $resultados['nombre'] = $almacen->nombre;
+                $resultados['fecha'] = $linea['fecha'];
+                $resultados['tipo_documento'] = ucfirst(FS_ALBARAN) . " " . K::kardex_VentaNoFacturada;
+                $resultados['documento'] = $linea['idalbaran'];
+                $resultados['referencia'] = $linea['referencia'];
+                $resultados['descripcion'] = $linea['descripcion'];
+                $resultados['salida_cantidad'] = ($linea['cantidad'] >= 0) ? $linea['cantidad'] : 0;
+                $resultados['ingreso_cantidad'] = ($linea['cantidad'] <= 0) ? $linea['cantidad'] : 0;
+                $resultados['salida_monto'] = ($linea['monto'] >= 0) ? $linea['monto'] : 0;
+                $resultados['ingreso_monto'] = ($linea['monto'] <= 0) ? $linea['monto'] : 0;
+                $this->lista[$linea['fecha']][] = $resultados;
+                $this->total_resultados++;
+            }
+        }
 
-      /*
-       * Generamos la informacion de las facturas que se han generado sin albaran
-       */
-      $sql_facturas = "select codalmacen,fc.fecha,fc.idfactura,referencia,descripcion,descripcion,coddivisa,sum(cantidad) as cantidad, sum(pvptotal) as monto
+        /*
+         * Generamos la informacion de las facturas que se han generado sin albaran
+         */
+        $sql_facturas = "select codalmacen,fc.fecha,fc.idfactura,referencia,descripcion,descripcion,coddivisa,sum(cantidad) as cantidad, sum(pvptotal) as monto
          from facturascli as fc
          join lineasfacturascli as l ON (fc.idfactura=l.idfactura)
-         where codalmacen = '".stripcslashes(strip_tags(trim($almacen->codalmacen)))."' AND fecha between '".$this->fecha_inicio."' and '".$this->fecha_fin."'
+         where codalmacen = '" . stripcslashes(strip_tags(trim($almacen->codalmacen))) . "' AND fecha between '" . $this->fecha_inicio . "' and '" . $this->fecha_fin . "'
          and anulada=FALSE and idalbaran is null
          and l.referencia in ($productos)
          group by codalmacen,fc.fecha,fc.idfactura,referencia,descripcion,descripcion,coddivisa
          order by codalmacen,referencia,fecha;";
-      $data = $this->db->select($sql_facturas);
-      if($data){
-         foreach($data as $linea){
-            $linea['monto'] = ($linea['coddivisa']!=$this->empresa->coddivisa)?$this->euro_convert($this->divisa_convert($linea['monto'], $linea['coddivisa'], 'EUR')):$linea['monto'];
-            $resultados['codalmacen'] = $linea['codalmacen'];
-            $resultados['nombre'] = $almacen->nombre;
-            $resultados['fecha'] = $linea['fecha'];
-            $resultados['tipo_documento'] = ($linea['cantidad']>=0)?ucfirst(FS_FACTURA)." ".K::kardex_Venta:K::kardex_Devolucion." ".K::kardex_Venta;
-            $resultados['documento'] = $linea['idfactura'];
-            $resultados['referencia'] = $linea['referencia'];
-            $resultados['descripcion'] = $linea['descripcion'];
-            $resultados['salida_cantidad'] = ($linea['cantidad']>=0)?$linea['cantidad']:0;
-            $resultados['ingreso_cantidad'] = ($linea['cantidad']<=0)?$linea['cantidad']:0;
-            $resultados['salida_monto'] = ($linea['monto']>=0)?$linea['monto']:0;
-            $resultados['ingreso_monto'] = ($linea['monto']<=0)?$linea['monto']:0;
-            $lista[$linea['fecha']][] = $resultados;
-            $this->total_resultados++;
-         }
-      }
-      return $this->generar_resultados($lista,$almacen);
-   }
-
-    public function generar_resultados($lista,$almacen){
-      $linea_resultado = array();
-      $lista_resultado = array();
-      $cabecera_export = array();
-      $lista_export = array();
-      $resumen = array();
-      ksort($lista);
-      $id_linea = 1;
-      foreach($lista as $fecha){
-         foreach($fecha as $value){
-            $value['id'] = $id_linea++;
-            if(!isset($resumen[$value['codalmacen']][$value['referencia']]['saldo_cantidad'])){
-                $resumen[$value['codalmacen']][$value['referencia']]['saldo_cantidad'] = 0;
+        $data = $this->db->select($sql_facturas);
+        if ($data) {
+            foreach ($data as $linea) {
+                $linea['monto'] = ($linea['coddivisa'] != $this->empresa->coddivisa) ? $this->euro_convert($this->divisa_convert($linea['monto'], $linea['coddivisa'], 'EUR')) : $linea['monto'];
+                $resultados['codalmacen'] = $linea['codalmacen'];
+                $resultados['nombre'] = $almacen->nombre;
+                $resultados['fecha'] = $linea['fecha'];
+                $resultados['tipo_documento'] = ($linea['cantidad'] >= 0) ? ucfirst(FS_FACTURA) . " " . K::kardex_Venta : K::kardex_Devolucion . " " . K::kardex_Venta;
+                $resultados['documento'] = $linea['idfactura'];
+                $resultados['referencia'] = $linea['referencia'];
+                $resultados['descripcion'] = $linea['descripcion'];
+                $resultados['salida_cantidad'] = ($linea['cantidad'] >= 0) ? $linea['cantidad'] : 0;
+                $resultados['ingreso_cantidad'] = ($linea['cantidad'] <= 0) ? $linea['cantidad'] : 0;
+                $resultados['salida_monto'] = ($linea['monto'] >= 0) ? $linea['monto'] : 0;
+                $resultados['ingreso_monto'] = ($linea['monto'] <= 0) ? $linea['monto'] : 0;
+                $this->lista[$linea['fecha']][] = $resultados;
+                $this->total_resultados++;
             }
-            if(!isset($resumen[$value['codalmacen']][$value['referencia']]['saldo_monto'])){
-                $resumen[$value['codalmacen']][$value['referencia']]['saldo_monto'] = 0;
-            }
-            if(!isset($lista_export[$value['referencia']][$value['fecha']][$value['tipo_documento']][$value['documento']]['saldo_monto'])){
-                $lista_export[$value['referencia']][$value['fecha']][$value['tipo_documento']][$value['documento']]['saldo_monto'] = 0;
-            }
-            if(!isset($lista_export[$value['referencia']][$value['fecha']][$value['tipo_documento']][$value['documento']]['salida_monto'])){
-                $lista_export[$value['referencia']][$value['fecha']][$value['tipo_documento']][$value['documento']]['salida_monto'] = 0;
-            }
-            if(!isset($lista_export[$value['referencia']][$value['fecha']][$value['tipo_documento']][$value['documento']]['salida_cantidad'])){
-                $lista_export[$value['referencia']][$value['fecha']][$value['tipo_documento']][$value['documento']]['salida_cantidad'] = 0;
-            }
-            if(!isset($lista_export[$value['referencia']][$value['fecha']][$value['tipo_documento']][$value['documento']]['ingreso_monto'])){
-                $lista_export[$value['referencia']][$value['fecha']][$value['tipo_documento']][$value['documento']]['ingreso_monto'] = 0;
-            }
-            if(!isset($lista_export[$value['referencia']][$value['fecha']][$value['tipo_documento']][$value['documento']]['ingreso_cantidad'])){
-                $lista_export[$value['referencia']][$value['fecha']][$value['tipo_documento']][$value['documento']]['ingreso_cantidad'] = 0;
-            }
-            $value['ingreso_cantidad'] = ($value['ingreso_cantidad'] < 0)?$value['ingreso_cantidad']*-1:$value['ingreso_cantidad'];
-            $value['salida_cantidad'] = ($value['salida_cantidad'] < 0)?$value['salida_cantidad']*-1:$value['salida_cantidad'];
-            $value['ingreso_monto'] = ($value['ingreso_monto'] < 0)?$value['ingreso_monto']*-1:$value['ingreso_monto'];
-            $value['salida_monto'] = ($value['salida_monto'] < 0)?$value['salida_monto']*-1:$value['salida_monto'];
-            $saldoCantidadInicial =  ($value['tipo_documento']=='Saldo Inicial')?$value['saldo_cantidad']:0;
-            $saldoMontoInicial =  ($value['tipo_documento']=='Saldo Inicial')?$value['saldo_monto']:0;
-            $resumen[$value['codalmacen']][$value['referencia']]['saldo_cantidad'] += ($saldoCantidadInicial+($value['ingreso_cantidad']-$value['salida_cantidad']));
-            $resumen[$value['codalmacen']][$value['referencia']]['saldo_monto'] += ($saldoMontoInicial+($value['ingreso_monto']-$value['salida_monto']));
-            $linea_resultado = $value;
-            $linea_resultado['saldo_cantidad'] = ($value['tipo_documento']=='Saldo Inicial')?$value['saldo_cantidad']:$resumen[$value['codalmacen']][$value['referencia']]['saldo_cantidad'];
-            $linea_resultado['saldo_monto'] = ($value['tipo_documento']=='Saldo Inicial')?$value['saldo_monto']:$resumen[$value['codalmacen']][$value['referencia']]['saldo_monto'];
-            $lista_resultado[] = $linea_resultado;
-            $cabecera_export[$value['referencia']]=$value['descripcion'];
-            $lista_export[$value['referencia']][$value['fecha']][$value['tipo_documento']][$value['documento']]['ingreso_cantidad'] += $value['ingreso_cantidad'];
-            $lista_export[$value['referencia']][$value['fecha']][$value['tipo_documento']][$value['documento']]['ingreso_monto'] += $value['ingreso_monto'];
-            $lista_export[$value['referencia']][$value['fecha']][$value['tipo_documento']][$value['documento']]['salida_cantidad'] += $value['salida_cantidad'];
-            $lista_export[$value['referencia']][$value['fecha']][$value['tipo_documento']][$value['documento']]['salida_monto'] += $value['salida_monto'];
-            $lista_export[$value['referencia']][$value['fecha']][$value['tipo_documento']][$value['documento']]['saldo_cantidad'] = $linea_resultado['saldo_cantidad'];
-            $lista_export[$value['referencia']][$value['fecha']][$value['tipo_documento']][$value['documento']]['saldo_monto'] = $linea_resultado['saldo_monto'];
-         }
-      }
+        }
+    }
 
-      foreach($lista_export as $referencia=>$listafecha){
-         $lineas = 0;
-         $sumaSalidasQda[$referencia]=0;
-         $sumaSalidasMonto[$referencia]=0;
-         $sumaIngresosQda[$referencia]=0;
-         $sumaIngresosMonto[$referencia]=0;
-         foreach($listafecha as $fecha=>$tipo_documentos){
-            foreach($tipo_documentos as $tipo_documento=>$documentos){
-               foreach($documentos as $documento=>$movimiento){
-                  if($lineas == 0){
-                     $this->writer->writeSheetRow($almacen->nombre,
-                         array('', '', '', '', $cabecera_export[$referencia], '', '', '', '', '', '')
-                     );
-                  }
-                  $this->writer->writeSheetRow($almacen->nombre,
-                     array(
-                        $fecha,
-                        $tipo_documento,
-                        $documento,
-                        $referencia,
-                        $cabecera_export[$referencia],
-                        $movimiento['salida_cantidad'],
-                        $movimiento['salida_monto'],
-                        $movimiento['ingreso_cantidad'],
-                        $movimiento['ingreso_monto'],
-                        $movimiento['saldo_cantidad'],
-                        $movimiento['saldo_monto']
-                     )
-                  );
-                  $sumaSalidasQda[$referencia] +=$movimiento['salida_cantidad'];
-                  $sumaSalidasMonto[$referencia] +=$movimiento['salida_monto'];
-                  $sumaIngresosQda[$referencia] +=$movimiento['ingreso_cantidad'];
-                  $sumaIngresosMonto[$referencia] +=$movimiento['ingreso_monto'];
-                  $lineas++;
-               }
+    public function devolucionVentas($almacen,$productos) {
+        
+    }
+
+    public function Transferencias($almacen,$productos) {
+        /*
+         * Generamos la informacion de las transferencias por salida que se hayan hecho a los stocks
+         */
+        $sql_regstocks = "select codalmaorigen, fecha, l.idtrans, a.referencia, sum(cantidad) as cantidad, a.descripcion, costemedio
+         from lineastransstock AS ls
+         JOIN transstock as l ON(ls.idtrans = l.idtrans)
+         JOIN articulos as a ON(a.referencia = ls.referencia)
+         where codalmaorigen = '" . stripcslashes(strip_tags(trim($almacen->codalmacen))) . "' AND fecha between '" . $this->fecha_inicio . "' and '" . $this->fecha_fin . "'
+         and ls.referencia IN ($productos)
+         group by l.codalmaorigen, fecha, l.idtrans, a.referencia, a.descripcion, costemedio
+         order by codalmaorigen,a.referencia,fecha;";
+        //echo $sql_regstocks;
+        $data = $this->db->select($sql_regstocks);
+        if ($data) {
+            foreach ($data as $linea) {
+                $resultados['codalmacen'] = $linea['codalmaorigen'];
+                $resultados['nombre'] = $almacen->nombre;
+                $resultados['fecha'] = $linea['fecha'];
+                $resultados['tipo_documento'] = K::kardex_Transferencia;
+                $resultados['documento'] = $linea['idtrans'];
+                $resultados['referencia'] = $linea['referencia'];
+                $resultados['descripcion'] = $linea['descripcion'];
+                $resultados['salida_cantidad'] = ($linea['cantidad'] >= 0) ? $linea['cantidad'] : 0;
+                $resultados['ingreso_cantidad'] = 0;
+                $resultados['salida_monto'] = ($linea['cantidad'] >= 0) ? ($linea['costemedio'] * $linea['cantidad']) : 0;
+                $resultados['ingreso_monto'] = 0;
+                $this->lista[$linea['fecha']][] = $resultados;
+                $this->total_resultados++;
             }
-         }
-         $this->writer->writeSheetRow($almacen->nombre,
-            array('', '', '', '', K::kardex_SaldoFinal, $sumaSalidasQda[$referencia], $sumaSalidasMonto[$referencia], $sumaIngresosQda[$referencia], $sumaIngresosMonto[$referencia], ($sumaIngresosQda[$referencia]-$sumaSalidasQda[$referencia]), ($sumaIngresosMonto[$referencia]-$sumaSalidasMonto[$referencia]))
-         );
-         $this->writer->writeSheetRow($almacen->nombre,
-            array('', '', '', '', '', '', '', '', '', '', '')
-         );
-      }
-      return $lista_resultado;
-   }
+        }
 
-   private function share_extension()
-   {
-      $extensiones = array(
-         array(
-            'name' => 'analisisarticulos_css001',
-            'page_from' => __CLASS__,
-            'page_to' => 'informe_analisisarticulos',
-            'type' => 'head',
-            'text' => '<link rel="stylesheet" type="text/css" media="screen" href="'.FS_PATH.'plugins/kardex/view/css/ui.jqgrid-bootstrap.css"/>',
-            'params' => ''
-         ),
-         array(
-            'name' => 'analisisarticulos_css002',
-            'page_from' => __CLASS__,
-            'page_to' => 'informe_analisisarticulos',
-            'type' => 'head',
-            'text' => '<link rel="stylesheet" type="text/css" media="screen" href="'.FS_PATH.'plugins/kardex/view/css/bootstrap-select.min.css"/>',
-            'params' => ''
-         ),
-      );
+        /*
+         * Generamos la informacion de las transferencias por ingresos que se hayan hecho a los stocks
+         */
+        $sql_regstocks = "select codalmadestino, fecha, l.idtrans, a.referencia, sum(cantidad) as cantidad, a.descripcion, costemedio
+         from lineastransstock AS ls
+         JOIN transstock as l ON(ls.idtrans = l.idtrans)
+         JOIN articulos as a ON(a.referencia = ls.referencia)
+         where codalmadestino = '" . stripcslashes(strip_tags(trim($almacen->codalmacen))) . "' AND fecha between '" . $this->fecha_inicio . "' and '" . $this->fecha_fin . "'
+         and ls.referencia IN ($productos)
+         group by l.codalmadestino, fecha, l.idtrans, a.referencia, a.descripcion, costemedio
+         order by codalmadestino,a.referencia,fecha;";
+        $data = $this->db->select($sql_regstocks);
+        if ($data) {
+            foreach ($data as $linea) {
+                $resultados['codalmacen'] = $linea['codalmadestino'];
+                $resultados['nombre'] = $almacen->nombre;
+                $resultados['fecha'] = $linea['fecha'];
+                $resultados['tipo_documento'] = K::kardex_Transferencia;
+                $resultados['documento'] = $linea['idtrans'];
+                $resultados['referencia'] = $linea['referencia'];
+                $resultados['descripcion'] = $linea['descripcion'];
+                $resultados['salida_cantidad'] = 0;
+                $resultados['ingreso_cantidad'] = ($linea['cantidad'] >= 0) ? $linea['cantidad'] : 0;
+                $resultados['salida_monto'] = 0;
+                $resultados['ingreso_monto'] = ($linea['cantidad'] >= 0) ? ($linea['costemedio'] * $linea['cantidad']) : 0;
+                $this->lista[$linea['fecha']][] = $resultados;
+                $this->total_resultados++;
+            }
+        }
+    }
 
-      foreach ($extensiones as $ext) {
-         $fsext0 = new fs_extension($ext);
-         if (!$fsext0->save()) {
-            $this->new_error_msg('Imposible guardar los datos de la extensión ' . $ext['name'] . '.');
-         }
-      }
-   }
+    public function Regularizaciones($almacen,$productos) {
+        /*
+         * Generamos la informacion de las regularizaciones que se hayan hecho a los stocks
+         */
+        $sql_regstocks = "select codalmacen, fecha, l.idstock, a.referencia, motivo, sum(cantidadfin) as cantidad, descripcion, costemedio
+         from lineasregstocks AS ls
+         JOIN stocks as l ON(ls.idstock = l.idstock)
+         JOIN articulos as a ON(a.referencia = l.referencia)
+         where codalmacen = '" . stripcslashes(strip_tags(trim($almacen->codalmacen))) . "' AND fecha between '" . $this->fecha_inicio . "' and '" . $this->fecha_fin . "'
+         and l.referencia IN ($productos)
+         group by l.codalmacen, fecha, l.idstock, a.referencia, motivo, descripcion, costemedio
+         order by codalmacen,a.referencia,fecha;";
+        $data = $this->db->select($sql_regstocks);
+        if ($data) {
+            foreach ($data as $linea) {
+                $resultados['codalmacen'] = $linea['codalmacen'];
+                $resultados['nombre'] = $almacen->nombre;
+                $resultados['fecha'] = $linea['fecha'];
+                $resultados['tipo_documento'] = K::kardex_Regularizacion;
+                $resultados['documento'] = $linea['idstock'];
+                $resultados['referencia'] = $linea['referencia'];
+                $resultados['descripcion'] = $linea['descripcion'];
+                $resultados['salida_cantidad'] = ($linea['cantidad'] <= 0) ? $linea['cantidad'] : 0;
+                $resultados['ingreso_cantidad'] = ($linea['cantidad'] >= 0) ? $linea['cantidad'] : 0;
+                $resultados['salida_monto'] = ($linea['cantidad'] <= 0) ? ($linea['costemedio'] * $linea['cantidad']) : 0;
+                $resultados['ingreso_monto'] = ($linea['cantidad'] >= 0) ? ($linea['costemedio'] * $linea['cantidad']) : 0;
+                $this->lista[$linea['fecha']][] = $resultados;
+                $this->total_resultados++;
+            }
+        }
+    }
 
-   private function familia_data()
-   {
-      $result = "'";
-      foreach($this->familia as $key=>$value){
-         $result .= $value."','";
-      }
-      return substr($result, 0, strlen($result)-2);
-   }
+    public function generar_resultados($lista, $almacen) {
+        $linea_resultado = array();
+        $this->lista_resultado = array();
+        $cabecera_export = array();
+        $lista_export = array();
+        $resumen = array();
+        ksort($this->lista);
+        $id_linea = 1;
+        foreach ($this->lista as $fecha) {
+            foreach ($fecha as $value) {
+                $value['id'] = $id_linea++;
+                if (!isset($resumen[$value['codalmacen']][$value['referencia']]['saldo_cantidad'])) {
+                    $resumen[$value['codalmacen']][$value['referencia']]['saldo_cantidad'] = 0;
+                }
+                if (!isset($resumen[$value['codalmacen']][$value['referencia']]['saldo_monto'])) {
+                    $resumen[$value['codalmacen']][$value['referencia']]['saldo_monto'] = 0;
+                }
+                if (!isset($lista_export[$value['referencia']][$value['fecha']][$value['tipo_documento']][$value['documento']]['saldo_monto'])) {
+                    $lista_export[$value['referencia']][$value['fecha']][$value['tipo_documento']][$value['documento']]['saldo_monto'] = 0;
+                }
+                if (!isset($lista_export[$value['referencia']][$value['fecha']][$value['tipo_documento']][$value['documento']]['salida_monto'])) {
+                    $lista_export[$value['referencia']][$value['fecha']][$value['tipo_documento']][$value['documento']]['salida_monto'] = 0;
+                }
+                if (!isset($lista_export[$value['referencia']][$value['fecha']][$value['tipo_documento']][$value['documento']]['salida_cantidad'])) {
+                    $lista_export[$value['referencia']][$value['fecha']][$value['tipo_documento']][$value['documento']]['salida_cantidad'] = 0;
+                }
+                if (!isset($lista_export[$value['referencia']][$value['fecha']][$value['tipo_documento']][$value['documento']]['ingreso_monto'])) {
+                    $lista_export[$value['referencia']][$value['fecha']][$value['tipo_documento']][$value['documento']]['ingreso_monto'] = 0;
+                }
+                if (!isset($lista_export[$value['referencia']][$value['fecha']][$value['tipo_documento']][$value['documento']]['ingreso_cantidad'])) {
+                    $lista_export[$value['referencia']][$value['fecha']][$value['tipo_documento']][$value['documento']]['ingreso_cantidad'] = 0;
+                }
+                $value['ingreso_cantidad'] = ($value['ingreso_cantidad'] < 0) ? $value['ingreso_cantidad'] * -1 : $value['ingreso_cantidad'];
+                $value['salida_cantidad'] = ($value['salida_cantidad'] < 0) ? $value['salida_cantidad'] * -1 : $value['salida_cantidad'];
+                $value['ingreso_monto'] = ($value['ingreso_monto'] < 0) ? $value['ingreso_monto'] * -1 : $value['ingreso_monto'];
+                $value['salida_monto'] = ($value['salida_monto'] < 0) ? $value['salida_monto'] * -1 : $value['salida_monto'];
+                $saldoCantidadInicial = ($value['tipo_documento'] == 'Saldo Inicial') ? $value['saldo_cantidad'] : 0;
+                $saldoMontoInicial = ($value['tipo_documento'] == 'Saldo Inicial') ? $value['saldo_monto'] : 0;
+                $resumen[$value['codalmacen']][$value['referencia']]['saldo_cantidad'] += ($saldoCantidadInicial + ($value['ingreso_cantidad'] - $value['salida_cantidad']));
+                $resumen[$value['codalmacen']][$value['referencia']]['saldo_monto'] += ($saldoMontoInicial + ($value['ingreso_monto'] - $value['salida_monto']));
+                $linea_resultado = $value;
+                $linea_resultado['saldo_cantidad'] = ($value['tipo_documento'] == 'Saldo Inicial') ? $value['saldo_cantidad'] : $resumen[$value['codalmacen']][$value['referencia']]['saldo_cantidad'];
+                $linea_resultado['saldo_monto'] = ($value['tipo_documento'] == 'Saldo Inicial') ? $value['saldo_monto'] : $resumen[$value['codalmacen']][$value['referencia']]['saldo_monto'];
+                $lista_resultado[] = $linea_resultado;
+                $cabecera_export[$value['referencia']] = $value['descripcion'];
+                $lista_export[$value['referencia']][$value['fecha']][$value['tipo_documento']][$value['documento']]['ingreso_cantidad'] += $value['ingreso_cantidad'];
+                $lista_export[$value['referencia']][$value['fecha']][$value['tipo_documento']][$value['documento']]['ingreso_monto'] += $value['ingreso_monto'];
+                $lista_export[$value['referencia']][$value['fecha']][$value['tipo_documento']][$value['documento']]['salida_cantidad'] += $value['salida_cantidad'];
+                $lista_export[$value['referencia']][$value['fecha']][$value['tipo_documento']][$value['documento']]['salida_monto'] += $value['salida_monto'];
+                $lista_export[$value['referencia']][$value['fecha']][$value['tipo_documento']][$value['documento']]['saldo_cantidad'] = $linea_resultado['saldo_cantidad'];
+                $lista_export[$value['referencia']][$value['fecha']][$value['tipo_documento']][$value['documento']]['saldo_monto'] = $linea_resultado['saldo_monto'];
+            }
+        }
 
-   private function articulo_data()
-   {
-      $result = "'";
-      foreach($this->articulo as $key=>$value){
-         $result .= $value."','";
-      }
-      return substr($result, 0, strlen($result)-2);
-   }
-   
-   private function language($lang=false){
-      $language = ($lang and file_exists('plugins/kardex/lang/lang_'.$lang.'.ini'))?$lang:'es';
-      $this->i18n_controller = new i18n_kardex('plugins/kardex/lang/lang_'.$language.'.ini', 'plugins/kardex/langcache/');
-      $this->i18n_controller->setForcedLang($language);
-      $this->i18n_controller->setPrefix('K');
-      $this->i18n_controller->init();
-   }   
+        foreach ($lista_export as $referencia => $listafecha) {
+            $lineas = 0;
+            $sumaSalidasQda[$referencia] = 0;
+            $sumaSalidasMonto[$referencia] = 0;
+            $sumaIngresosQda[$referencia] = 0;
+            $sumaIngresosMonto[$referencia] = 0;
+            foreach ($listafecha as $fecha => $tipo_documentos) {
+                foreach ($tipo_documentos as $tipo_documento => $documentos) {
+                    foreach ($documentos as $documento => $movimiento) {
+                        if ($lineas == 0) {
+                            $this->writer->writeSheetRow($almacen->nombre, array('', '', '', '', $cabecera_export[$referencia], '', '', '', '', '', '')
+                            );
+                        }
+                        $this->writer->writeSheetRow($almacen->nombre, array(
+                            $fecha,
+                            $tipo_documento,
+                            $documento,
+                            $referencia,
+                            $cabecera_export[$referencia],
+                            $movimiento['salida_cantidad'],
+                            $movimiento['salida_monto'],
+                            $movimiento['ingreso_cantidad'],
+                            $movimiento['ingreso_monto'],
+                            $movimiento['saldo_cantidad'],
+                            $movimiento['saldo_monto']
+                                )
+                        );
+                        $sumaSalidasQda[$referencia] += $movimiento['salida_cantidad'];
+                        $sumaSalidasMonto[$referencia] += $movimiento['salida_monto'];
+                        $sumaIngresosQda[$referencia] += $movimiento['ingreso_cantidad'];
+                        $sumaIngresosMonto[$referencia] += $movimiento['ingreso_monto'];
+                        $lineas++;
+                    }
+                }
+            }
+            $this->writer->writeSheetRow($almacen->nombre, array('', '', '', '', K::kardex_SaldoFinal, $sumaSalidasQda[$referencia], $sumaSalidasMonto[$referencia], $sumaIngresosQda[$referencia], $sumaIngresosMonto[$referencia], ($sumaIngresosQda[$referencia] - $sumaSalidasQda[$referencia]), ($sumaIngresosMonto[$referencia] - $sumaSalidasMonto[$referencia]))
+            );
+            $this->writer->writeSheetRow($almacen->nombre, array('', '', '', '', '', '', '', '', '', '', '')
+            );
+        }
+        return $lista_resultado;
+    }
 
-   /**
-   * @url http://snippets.khromov.se/convert-comma-separated-values-to-array-in-php/
-   * @param $string - Input string to convert to array
-   * @param string $separator - Separator to separate by (default: ,)
-   *
-   * @return array
-   */
-   private function comma_separated_to_array($string, $separator = ',')
-   {
-      //Explode on comma
-      $vals = explode($separator, $string);
+    private function share_extension() {
+        $extensiones = array(
+            array(
+                'name' => 'analisisarticulos_css001',
+                'page_from' => __CLASS__,
+                'page_to' => 'informe_analisisarticulos',
+                'type' => 'head',
+                'text' => '<link rel="stylesheet" type="text/css" media="screen" href="' . FS_PATH . 'plugins/kardex/view/css/ui.jqgrid-bootstrap.css"/>',
+                'params' => ''
+            ),
+            array(
+                'name' => 'analisisarticulos_css002',
+                'page_from' => __CLASS__,
+                'page_to' => 'informe_analisisarticulos',
+                'type' => 'head',
+                'text' => '<link rel="stylesheet" type="text/css" media="screen" href="' . FS_PATH . 'plugins/kardex/view/css/bootstrap-select.min.css"/>',
+                'params' => ''
+            ),
+        );
 
-      //Trim whitespace
-      foreach($vals as $key => $val) {
-         $vals[$key] = trim($val);
-      }
-      //Return empty array if no items found
-      //http://php.net/manual/en/function.explode.php#114273
-      return array_diff($vals, array(""));
-   }
+        foreach ($extensiones as $ext) {
+            $fsext0 = new fs_extension($ext);
+            if (!$fsext0->save()) {
+                $this->new_error_msg('Imposible guardar los datos de la extensión ' . $ext['name'] . '.');
+            }
+        }
+    }
+
+    private function familia_data() {
+        $result = "'";
+        foreach ($this->familia as $key => $value) {
+            $result .= $value . "','";
+        }
+        return substr($result, 0, strlen($result) - 2);
+    }
+
+    private function articulo_data() {
+        $result = "'";
+        foreach ($this->articulo as $key => $value) {
+            $result .= $value . "','";
+        }
+        return substr($result, 0, strlen($result) - 2);
+    }
+
+    private function language($lang = false) {
+        $language = ($lang and file_exists('plugins/kardex/lang/lang_' . $lang . '.ini')) ? $lang : 'es';
+        $this->i18n_controller = new i18n_kardex('plugins/kardex/lang/lang_' . $language . '.ini', 'plugins/kardex/langcache/');
+        $this->i18n_controller->setForcedLang($language);
+        $this->i18n_controller->setPrefix('K');
+        $this->i18n_controller->init();
+    }
+
+    /**
+     * @url http://snippets.khromov.se/convert-comma-separated-values-to-array-in-php/
+     * @param $string - Input string to convert to array
+     * @param string $separator - Separator to separate by (default: ,)
+     *
+     * @return array
+     */
+    private function comma_separated_to_array($string, $separator = ',') {
+        //Explode on comma
+        $vals = explode($separator, $string);
+
+        //Trim whitespace
+        foreach ($vals as $key => $val) {
+            $vals[$key] = trim($val);
+        }
+        //Return empty array if no items found
+        //http://php.net/manual/en/function.explode.php#114273
+        return array_diff($vals, array(""));
+    }
+
 }
