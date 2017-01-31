@@ -152,7 +152,7 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
                 </div>
             </div>
         </div>
-        <div class='col-sm-12' style="margin-bottom: 10px;">
+        <div class='col-sm-8' style="margin-bottom: 10px;">
             <label class="radio-inline">
                 <input type="radio" name="mostrar" onClick="document.getElementById('mostrar_reporte').value=this.value" value="todo" {if="$fsc->mostrar=='todo'"}checked{/if}> {function="L::kardex_Todo"}
             </label>
@@ -173,6 +173,11 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
             </label>
             <label class="radio-inline">
                 <input type="radio" name="mostrar" onClick="document.getElementById('mostrar_reporte').value=this.value" value="regularizacion" {if="$fsc->mostrar=='regularizacion'"}checked{/if}> {function="L::kardex_Regularizacion"}
+            </label>
+        </div>
+        <div class='col-sm-4' style="margin-bottom: 10px;">
+            <label class="checkbox-inline">
+                <input type="checkbox" id="valorizado" name="valorizado" value="TRUE" {if="$fsc->valorizado"}checked{/if}> {function="L::kardex_Valorizado"}
             </label>
         </div>
     </form>
@@ -352,6 +357,7 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
     }
 
     function get_stock() {
+        var valorizado = document.getElementById("valorizado").checked;
         var inicio = $('#inicio').val();
         var fin = $('#fin').val();
         var almacen = $('#codalmacen').val();
@@ -362,103 +368,17 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
             type: 'POST',
             url: '{$fsc->url()}',
             async: false,
-            data: 'procesar-reporte=true&inicio=' + inicio + '&fin=' + fin + '&almacen=' + almacen + '&familia=' + familia + '&articulo=' + articulo + '&mostrar=' + mostrar,
+            data: 'procesar-reporte=true&inicio=' + inicio + '&fin=' + fin + '&almacen=' + almacen + '&familia=' + familia + '&articulo=' + articulo + '&mostrar=' + mostrar + '&valorizado=' + valorizado,
             success: function (datos) {
-
                 $("#grid_kardex").jqGrid('clearGridData');
-                $("#grid_kardex").jqGrid({
-                    title: 'Kardex del ' + inicio + ' al ' + fin,
-                    data: datos.rows,
-                    datatype: "local",
-                    colModel: [
-                        {label: '{function="L::kardex_Almacen"}', name: 'nombre', width: 80},
-                        {label: '{function="L::kardex_Fecha"}', name: 'fecha', width: 50},
-                        {label: '{function="L::kardex_Documento"}', name: 'tipo_documento', width: 70},
-                        {label: '{function="L::kardex_Numero"}', name: 'documento', width: 50},
-                        {label: '{function="L::kardex_Articulo"}', name: 'descripcion', width: 90},
-                        {
-                            label: '{function="L::kardex_Salida"} {function="L::kardex_CantidadAbrev"}',
-                            name: 'salida_cantidad',
-                            width: 60,
-                            summaryTpl: "<b>{0}</b>",
-                            formatter: 'number', align: 'right', summaryType: 'sum',
-                            formatoptions: {decimalSeparator: ".", decimalPlaces: 2, thousandsSeparator: ","}
-                        },
-                        {
-                            label: '{function="L::kardex_Salida"} {$fsc->empresa->coddivisa}',
-                            name: 'salida_monto',
-                            width: 70,
-                            summaryTpl: "<b>{0}</b>",
-                            formatter: 'number', align: 'right', summaryType: 'sum',
-                            formatoptions: {decimalSeparator: ".", decimalPlaces: 2, thousandsSeparator: ","}
-                        },
-                        {
-                            label: '{function="L::kardex_Ingreso"} {function="L::kardex_CantidadAbrev"}',
-                            name: 'ingreso_cantidad',
-                            width: 60,
-                            summaryTpl: "<b>{0}</b>",
-                            formatter: 'number', align: 'right', summaryType: 'sum',
-                            formatoptions: {decimalSeparator: ".", decimalPlaces: 2, thousandsSeparator: ","}
-                        },
-                        {
-                            label: '{function="L::kardex_Ingreso"} {$fsc->empresa->coddivisa}',
-                            name: 'ingreso_monto',
-                            width: 70,
-                            summaryTpl: "<b>{0}</b>",
-                            formatter: 'number', align: 'right', summaryType: 'sum',
-                            formatoptions: {decimalSeparator: ".", decimalPlaces: 2, thousandsSeparator: ","}
-                        },
-                        {
-                            label: '{function="L::kardex_Saldo"} {function="L::kardex_CantidadAbrev"}',
-                            name: 'saldo_cantidad',
-                            width: 60,
-                            summaryTpl: "<b>{0}</b>",
-                            formatter: 'number', align: 'right', summaryType: last_stock,
-                            formatoptions: {decimalSeparator: ".", decimalPlaces: 2, thousandsSeparator: ","}
-                        },
-                        {
-                            label: '{function="L::kardex_Saldo"} {$fsc->empresa->coddivisa}',
-                            name: 'saldo_monto',
-                            width: 70,
-                            summaryTpl: "<b>{0}</b>",
-                            formatter: 'number', align: 'right', summaryType: last_stock,
-                            formatoptions: {decimalSeparator: ".", decimalPlaces: 2, thousandsSeparator: ","}
-                        }
-                    ],
-                    loadonce: true,
-                    viewrecords: true,
-                    rowList: [100, 150, 200, 250, 500, 1000],
-                    headertitles: true,
-                    autowidth: true,
-                    height: 550,
-                    rowNum: 100,
-                    sortname: 'fecha',
-                    pager: "#grid_kardex_pager",
-                    grouping: true,
-                    hoverrows: true,
-                    groupingView: {
-                        groupField: ["nombre", "descripcion"],
-                        groupColumnShow: [true, true],
-                        groupText: [
-                            "<b>{0}</b>",
-                            "<b>{0}</b>"
-                        ],
-                        groupOrder: ["asc", "asc"],
-                        groupSummary: [true, false],
-                        groupSummaryPos: ['header', 'header'],
-                        groupCollapse: false
-                    }
-                });
+                $("#grid_kardex")[0].grid.beginReq();
                 $('#grid_kardex').jqGrid()
-                    .setGridParam({
-                        data: datos.rows
-                    })
-                    .trigger("reloadGrid");
-
-                $('#grid_kardex').navGrid(
-                    '#grid_kardex_pager',
-                    { edit: false, add: false, del: false, search: true, refresh: false, view: false, position: "left", cloneToTop: true }
-                );
+                .setGridParam({
+                    data: datos.rows,
+                    datatype: "local"
+                });
+                $("#grid_kardex")[0].grid.endReq();
+                $('#grid_kardex').jqGrid().trigger("reloadGrid");
                 if (datos.rows.length !== 0) {
                     $('#b_descargar_reporte').attr('href', datos.filename);
                     $('#b_descargar_reporte').show();
@@ -536,7 +456,108 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
             event.preventDefault();
             $("#modal_opciones_kardex").modal('show');
         });
+        
+        $("#grid_kardex").jqGrid('clearGridData');
+        $("#grid_kardex").jqGrid({
+            title: 'Kardex del ' + inicio + ' al ' + fin,
+            datatype: "local",
+            colModel: [
+                {label: '{function="L::kardex_Almacen"}', name: 'nombre', width: 80},
+                {label: '{function="L::kardex_Fecha"}', name: 'fecha', width: 50},
+                {label: '{function="L::kardex_Documento"}', name: 'tipo_documento', width: 70},
+                {label: '{function="L::kardex_Numero"}', name: 'documento', width: 50},
+                {label: '{function="L::kardex_Articulo"}', name: 'descripcion', width: 90},
+                {
+                    label: '{function="L::kardex_Salida"} {function="L::kardex_CantidadAbrev"}',
+                    name: 'salida_cantidad',
+                    width: 60,
+                    summaryTpl: "<b>{0}</b>",
+                    formatter: 'number', align: 'right', summaryType: 'sum',
+                    formatoptions: {decimalSeparator: ".", decimalPlaces: 2, thousandsSeparator: ","}
+                },
+                {
+                    label: '{function="L::kardex_Salida"} {$fsc->empresa->coddivisa}',
+                    name: 'salida_monto',
+                    width: 70,
+                    summaryTpl: "<b>{0}</b>",
+                    formatter: 'number', align: 'right', summaryType: 'sum',
+                    formatoptions: {decimalSeparator: ".", decimalPlaces: 2, thousandsSeparator: ","}
+                },
+                {
+                    label: '{function="L::kardex_Ingreso"} {function="L::kardex_CantidadAbrev"}',
+                    name: 'ingreso_cantidad',
+                    width: 60,
+                    summaryTpl: "<b>{0}</b>",
+                    formatter: 'number', align: 'right', summaryType: 'sum',
+                    formatoptions: {decimalSeparator: ".", decimalPlaces: 2, thousandsSeparator: ","}
+                },
+                {
+                    label: '{function="L::kardex_Ingreso"} {$fsc->empresa->coddivisa}',
+                    name: 'ingreso_monto',
+                    width: 70,
+                    summaryTpl: "<b>{0}</b>",
+                    formatter: 'number', align: 'right', summaryType: 'sum',
+                    formatoptions: {decimalSeparator: ".", decimalPlaces: 2, thousandsSeparator: ","}
+                },
+                {
+                    label: '{function="L::kardex_Saldo"} {function="L::kardex_CantidadAbrev"}',
+                    name: 'saldo_cantidad',
+                    width: 60,
+                    summaryTpl: "<b>{0}</b>",
+                    formatter: 'number', align: 'right', summaryType: last_stock,
+                    formatoptions: {decimalSeparator: ".", decimalPlaces: 2, thousandsSeparator: ","}
+                },
+                {
+                    label: '{function="L::kardex_Saldo"} {$fsc->empresa->coddivisa}',
+                    name: 'saldo_monto',
+                    width: 70,
+                    summaryTpl: "<b>{0}</b>",
+                    formatter: 'number', align: 'right', summaryType: last_stock,
+                    formatoptions: {decimalSeparator: ".", decimalPlaces: 2, thousandsSeparator: ","}
+                }
+            ],
+            loadonce: true,
+            viewrecords: true,
+            rowList: [100, 150, 200, 250, 500, 1000],
+            headertitles: true,
+            autowidth: true,
+            height: 550,
+            rowNum: 100,
+            sortname: 'fecha',
+            pager: "#grid_kardex_pager",
+            grouping: true,
+            hoverrows: true,
+            groupingView: {
+                groupField: ["nombre", "descripcion"],
+                groupColumnShow: [true, true],
+                groupText: [
+                    "<b>{0}</b>",
+                    "<b>{0}</b>"
+                ],
+                groupOrder: ["asc", "asc"],
+                groupSummary: [true, false],
+                groupSummaryPos: ['header', 'header'],
+                groupCollapse: false
+            },
+            loadComplete : function(){
+                var valorizado = document.getElementById("valorizado").checked;
+                if(valorizado){
+                    $('#grid_kardex').jqGrid('showCol',["salida_monto","ingreso_monto","saldo_monto"]); 
+                }else{
+                    $('#grid_kardex').jqGrid('hideCol',["salida_monto","ingreso_monto","saldo_monto"]); 
+                }
+            },
+        });
+        $('#grid_kardex').jqGrid()
+            .setGridParam({
+                data: datos.rows
+            })
+            .trigger("reloadGrid");
 
+        $('#grid_kardex').navGrid(
+            '#grid_kardex_pager',
+            { edit: false, add: false, del: false, search: true, refresh: false, view: false, position: "left", cloneToTop: true }
+        );
     });
 </script>
 
