@@ -378,7 +378,7 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
                     datatype: "local"
                 });
                 $("#grid_kardex")[0].grid.endReq();
-                $('#grid_kardex').jqGrid().trigger("reloadGrid");
+                $('#grid_kardex').jqGrid().trigger("reloadGrid",[{current:true}]);
                 if (datos.rows.length !== 0) {
                     $('#b_descargar_reporte').attr('href', datos.filename);
                     $('#b_descargar_reporte').show();
@@ -516,7 +516,7 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
                     formatoptions: {decimalSeparator: ".", decimalPlaces: 2, thousandsSeparator: ","}
                 }
             ],
-            loadonce: true,
+            loadonce: false,
             viewrecords: true,
             rowList: [100, 150, 200, 250, 500, 1000],
             headertitles: true,
@@ -535,28 +535,24 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
                     "<b>{0}</b>"
                 ],
                 groupOrder: ["asc", "asc"],
-                groupSummary: [true, false],
-                groupSummaryPos: ['header', 'header'],
+                groupSummary: [true, true],
+                groupSummaryPos: ['footer', 'footer'],
                 groupCollapse: false
             },
             loadComplete : function(){
                 var valorizado = document.getElementById("valorizado").checked;
                 if(valorizado){
-                    $('#grid_kardex').jqGrid('showCol',["salida_monto","ingreso_monto","saldo_monto"]); 
+                    $('#grid_kardex').jqGrid('showCol',["salida_monto","ingreso_monto","saldo_monto"]).trigger("reloadGrid");
                 }else{
-                    $('#grid_kardex').jqGrid('hideCol',["salida_monto","ingreso_monto","saldo_monto"]); 
+                    $('#grid_kardex').jqGrid('hideCol',["salida_monto","ingreso_monto","saldo_monto"]).trigger("reloadGrid");                    
                 }
             },
         });
-        $('#grid_kardex').jqGrid()
-            .setGridParam({
-                data: datos.rows
-            })
-            .trigger("reloadGrid");
+        
 
         $('#grid_kardex').navGrid(
             '#grid_kardex_pager',
-            { edit: false, add: false, del: false, search: true, refresh: false, view: false, position: "left", cloneToTop: true }
+            { edit: false, add: false, del: false, search: true, refresh: true, view: true, position: "left", cloneToTop: true }
         );
     });
 </script>
