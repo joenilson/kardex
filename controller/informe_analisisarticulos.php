@@ -184,10 +184,10 @@ class informe_analisisarticulos extends fs_controller {
             );
             if ($fsvar->array_save($kardex_config)) {
                 $data['success'] = true;
-                $data['mensaje'] = K::CambiosGrabadosCorrectamente;
+                $data['mensaje'] = K::kardex_CambiosGrabadosCorrectamente;
             } else {
                 $data['success'] = false;
-                $data['mensaje'] = K::CambiosNoGrabados;
+                $data['mensaje'] = K::kardex_CambiosNoGrabados;
             }
             $this->template = false;
             header('Content-Type: application/json');
