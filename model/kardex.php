@@ -279,16 +279,70 @@ class kardex extends fs_model {
          gc_collect_cycles();
       }
    }
+   
+    /**
+     * Con esta funcion se genera la información para el Inventario de Artículos
+     * @param type $almacen object \FacturaScripts\model\core\almacen
+     * @param type $data array
+     * @param type $documento string
+     * @param type $tipo string
+     */
+    public function procesar_informacion(&$array,$almacen,$data,$documento,$tipo){
+        $resultados = array();
+        foreach ($data as $linea) {
+            if(!isset($resultados[$linea['documento']]['salida_cantidad'])){
+                $resultados[$linea['documento']]['salida_cantidad'] = 0;
+            }
+            if(!isset($resultados[$linea['documento']]['ingreso_cantidad'])){
+                $resultados[$linea['documento']]['ingreso_cantidad'] = 0;
+            }
+            if(!isset($resultados[$linea['documento']]['salida_monto'])){
+                $resultados[$linea['documento']]['salida_monto'] = 0;
+            }
+            if(!isset($resultados[$linea['documento']]['ingreso_monto'])){
+                $resultados[$linea['documento']]['ingreso_monto'] = 0;
+            }
+            $idlinea = \date('Y-m-d H:i:s',strtotime($linea['fecha']." ".$linea['hora']));
+            if($this->valorizado){
+                $linea['monto'] = ($linea['coddivisa'] != $this->empresa->coddivisa) ? $this->euro_convert($this->divisa_convert($linea['monto'], $linea['coddivisa'], 'EUR')) : $linea['monto'];
+                if($tipo=='ingreso'){
+                    $resultados[$linea['documento']]['salida_monto'] = ($linea['monto'] <= 0) ? ($linea['monto']*-1) : 0;
+                    $resultados[$linea['documento']]['ingreso_monto'] = ($linea['monto'] >= 0) ? $linea['monto'] : 0;
+                }elseif($tipo=='salida'){
+                    $resultados[$linea['documento']]['salida_monto'] = ($linea['monto'] >= 0) ? $linea['monto'] : 0;
+                    $resultados[$linea['documento']]['ingreso_monto'] = ($linea['monto'] <= 0) ? ($linea['monto']*-1) : 0;
+                }
+            }
+            $resultados[$linea['documento']]['codalmacen'] = $linea['codalmacen'];
+            $resultados[$linea['documento']]['nombre'] = $almacen->nombre;
+            $resultados[$linea['documento']]['fecha'] = $linea['fecha'];
+            $resultados[$linea['documento']]['tipo_documento'] = $documento. " ".$linea['codigo'];
+            $resultados[$linea['documento']]['documento'] = $linea['documento'];
+            $resultados[$linea['documento']]['referencia'] = $linea['referencia'];
+            $resultados[$linea['documento']]['descripcion'] = stripcslashes($linea['descripcion']);
+            if($tipo=='ingreso'){
+                $resultados[$linea['documento']]['salida_cantidad'] = ($linea['cantidad'] <= 0) ? $linea['cantidad'] : 0;
+                $resultados[$linea['documento']]['ingreso_cantidad'] = ($linea['cantidad'] >= 0) ? $linea['cantidad'] : 0;
+            }elseif($tipo=='salida'){
+                $resultados[$linea['documento']]['salida_cantidad'] = ($linea['cantidad'] >= 0) ? $linea['cantidad'] : 0;
+                $resultados[$linea['documento']]['ingreso_cantidad'] = ($linea['cantidad'] <= 0) ? $linea['cantidad'] : 0;
+            }
+            
+            $this->lista[$idlinea][] = $resultados[$linea['documento']];
+            $this->total_resultados++;
+        }
+    }
+   
 
    /*
     * Esta es la consulta multiple que utilizamos para sacar la información
     * de todos los articulos tanto ingresos como salidas
     */
-
    public function stock_query($almacen) {
       //Generamos el select para la subconsulta de productos activos y que se controla su stock
       $productos = "SELECT referencia, descripcion, costemedio FROM articulos where bloqueado = false and nostock = false;";
       $lista_productos = $this->db->select($productos);
+      $resultados = array();
       if ($lista_productos) {
          foreach ($lista_productos as $item) {
             $resultados['kardex']['referencia'] = $item['referencia'];
@@ -299,6 +353,7 @@ class kardex extends fs_model {
             $resultados['kardex']['ingreso_monto'] = 0;
             $resultados['kardex']['cantidad_inicial'] = 0;
             $resultados['kardex']['monto_inicial'] = 0;
+            
             /*
              * Generamos la informacion del saldo final del dia anterior segun Inventario diario
              */
@@ -316,75 +371,6 @@ class kardex extends fs_model {
                   $resultados['kardex']['cantidad_inicial'] = $linea['cantidad_saldo'];
                   $resultados['kardex']['monto_inicial'] = $linea['monto_saldo'];
                }
-            }
-
-            /*
-             * Generamos la informacion de las regularizaciones que se hayan hecho a los stocks
-             */
-            $sql_regstocks = "select l.idstock, referencia, motivo, sum(cantidadfin) as cantidad
-             from lineasregstocks AS ls
-             JOIN stocks as l ON(ls.idstock = l.idstock)
-             where codalmacen = '" . $almacen->codalmacen . "' AND fecha = '" . $this->fecha_proceso . "'
-             and referencia = '" . $item['referencia'] . "'
-             group by l.idstock, referencia, motivo
-             order by l.idstock;";
-            $data = $this->db->select($sql_regstocks);
-            if ($data) {
-               foreach ($data as $linea) {
-                  $resultados['kardex']['referencia'] = $item['referencia'];
-                  $resultados['kardex']['descripcion'] = $item['descripcion'];
-                  $resultados['kardex']['salida_cantidad'] += ($linea['cantidad'] <= 0) ? ($linea['cantidad'] * -1) : 0;
-                  $resultados['kardex']['ingreso_cantidad'] += ($linea['cantidad'] >= 0) ? $linea['cantidad'] : 0;
-                  $resultados['kardex']['salida_monto'] += ($linea['cantidad'] <= 0) ? ($item['costemedio'] * ($linea['cantidad'] * -1)) : 0;
-                  $resultados['kardex']['ingreso_monto'] += ($linea['cantidad'] >= 0) ? ($item['costemedio'] * $linea['cantidad']) : 0;
-               }
-            }
-            //Si existen estas tablas se genera la información de las transferencias de stock
-            if( $this->db->table_exists('transstock', $this->tablas) AND $this->db->table_exists('lineastransstock', $this->tablas) ){
-                /*
-                 * Generamos la informacion de las transferencias por ingresos entre almacenes que se hayan hecho a los stocks
-                 */
-                $sql_regstocks = "select l.idtrans, referencia, sum(cantidad) as cantidad
-                from lineastransstock AS ls
-                JOIN transstock as l ON(ls.idtrans = l.idtrans)
-                where codalmadestino = '" . $almacen->codalmacen . "' AND fecha = '" . $this->fecha_proceso . "'
-                and referencia = '" . $item['referencia'] . "'
-                group by l.idtrans, referencia
-                order by l.idtrans;";
-                $data = $this->db->select($sql_regstocks);
-                if ($data) {
-                   foreach ($data as $linea) {
-                      $resultados['kardex']['referencia'] = $item['referencia'];
-                      $resultados['kardex']['descripcion'] = $item['descripcion'];
-                      $resultados['kardex']['salida_cantidad'] += 0;
-                      $resultados['kardex']['ingreso_cantidad'] += ($linea['cantidad'] >= 0) ? $linea['cantidad'] : 0;
-                      $resultados['kardex']['salida_monto'] += 0;
-                      $resultados['kardex']['ingreso_monto'] += ($linea['cantidad'] >= 0) ? ($item['costemedio'] * $linea['cantidad']) : 0;
-                   }
-                }
-            
-            
-                /*
-                 * Generamos la informacion de las transferencias por salidas entre almacenes que se hayan hecho a los stocks
-                 */
-                $sql_regstocks = "select l.idtrans, referencia, sum(cantidad) as cantidad
-                from lineastransstock AS ls
-                JOIN transstock as l ON(ls.idtrans = l.idtrans)
-                where codalmaorigen = '" . $almacen->codalmacen . "' AND fecha = '" . $this->fecha_proceso . "'
-                and referencia = '" . $item['referencia'] . "'
-                group by l.idtrans, referencia
-                order by l.idtrans;";
-                $data = $this->db->select($sql_regstocks);
-                if ($data) {
-                   foreach ($data as $linea) {
-                      $resultados['kardex']['referencia'] = $item['referencia'];
-                      $resultados['kardex']['descripcion'] = $item['descripcion'];
-                      $resultados['kardex']['salida_cantidad'] += ($linea['cantidad'] >= 0) ? $linea['cantidad'] : 0;
-                      $resultados['kardex']['ingreso_cantidad'] += 0;
-                      $resultados['kardex']['salida_monto'] += ($linea['cantidad'] >= 0) ? ($item['costemedio'] * $linea['cantidad']) : 0;
-                      $resultados['kardex']['ingreso_monto'] += 0;
-                   }
-                }
             }
 
             /*
@@ -488,13 +474,13 @@ class kardex extends fs_model {
              * Generamos la informacion de las facturas que se han generado sin albaran
              */
             $sql_facturas = "select fc.idfactura,referencia,coddivisa,tasaconv ,sum(cantidad) as cantidad, sum(pvptotal) as monto
-                      from facturascli as fc
-                      join lineasfacturascli as l ON (fc.idfactura=l.idfactura)
-                      where codalmacen = '" . $almacen->codalmacen . "' AND fecha = '" . $this->fecha_proceso . "'
-                      and anulada=FALSE and idalbaran is null
-                      and referencia = '" . $item['referencia'] . "'
-                      group by fc.idfactura,referencia,coddivisa,tasaconv 
-                      order by fc.idfactura;";
+                from facturascli as fc
+                join lineasfacturascli as l ON (fc.idfactura=l.idfactura)
+                where codalmacen = '" . $almacen->codalmacen . "' AND fecha = '" . $this->fecha_proceso . "'
+                and anulada=FALSE and idalbaran is null
+                and referencia = '" . $item['referencia'] . "'
+                group by fc.idfactura,referencia,coddivisa,tasaconv 
+                order by fc.idfactura;";
             $data = $this->db->select($sql_facturas);
             if ($data) {
                foreach ($data as $linea) {
@@ -528,6 +514,75 @@ class kardex extends fs_model {
                $kardex0->monto_saldo = ($valores['monto_inicial'] + ($valores['ingreso_monto'] - $valores['salida_monto']));
                if ($kardex0->cantidad_saldo != 0) {
                   $kardex0->save();
+               }
+            }
+            
+            //Si existen estas tablas se genera la información de las transferencias de stock
+            if( $this->db->table_exists('transstock', $this->tablas) AND $this->db->table_exists('lineastransstock', $this->tablas) ){
+                /*
+                 * Generamos la informacion de las transferencias por ingresos entre almacenes que se hayan hecho a los stocks
+                 */
+                $sql_regstocks = "select l.idtrans, referencia, sum(cantidad) as cantidad
+                from lineastransstock AS ls
+                JOIN transstock as l ON(ls.idtrans = l.idtrans)
+                where codalmadestino = '" . $almacen->codalmacen . "' AND fecha = '" . $this->fecha_proceso . "'
+                and referencia = '" . $item['referencia'] . "'
+                group by l.idtrans, referencia
+                order by l.idtrans;";
+                $data = $this->db->select($sql_regstocks);
+                if ($data) {
+                   foreach ($data as $linea) {
+                      $resultados['kardex']['referencia'] = $item['referencia'];
+                      $resultados['kardex']['descripcion'] = $item['descripcion'];
+                      $resultados['kardex']['salida_cantidad'] += 0;
+                      $resultados['kardex']['ingreso_cantidad'] += ($linea['cantidad'] >= 0) ? $linea['cantidad'] : 0;
+                      $resultados['kardex']['salida_monto'] += 0;
+                      $resultados['kardex']['ingreso_monto'] += ($linea['cantidad'] >= 0) ? ($item['costemedio'] * $linea['cantidad']) : 0;
+                   }
+                }
+            
+                /*
+                 * Generamos la informacion de las transferencias por salidas entre almacenes que se hayan hecho a los stocks
+                 */
+                $sql_regstocks = "select l.idtrans, referencia, sum(cantidad) as cantidad
+                from lineastransstock AS ls
+                JOIN transstock as l ON(ls.idtrans = l.idtrans)
+                where codalmaorigen = '" . $almacen->codalmacen . "' AND fecha = '" . $this->fecha_proceso . "'
+                and referencia = '" . $item['referencia'] . "'
+                group by l.idtrans, referencia
+                order by l.idtrans;";
+                $data = $this->db->select($sql_regstocks);
+                if ($data) {
+                   foreach ($data as $linea) {
+                      $resultados['kardex']['referencia'] = $item['referencia'];
+                      $resultados['kardex']['descripcion'] = $item['descripcion'];
+                      $resultados['kardex']['salida_cantidad'] += ($linea['cantidad'] >= 0) ? $linea['cantidad'] : 0;
+                      $resultados['kardex']['ingreso_cantidad'] += 0;
+                      $resultados['kardex']['salida_monto'] += ($linea['cantidad'] >= 0) ? ($item['costemedio'] * $linea['cantidad']) : 0;
+                      $resultados['kardex']['ingreso_monto'] += 0;
+                   }
+                }
+            }
+            
+            /*
+             * Generamos la informacion de las regularizaciones que se hayan hecho a los stocks
+             */
+            $sql_regstocks = "select l.idstock, referencia, motivo, sum(cantidadfin) as cantidad
+             from lineasregstocks AS ls
+             JOIN stocks as l ON(ls.idstock = l.idstock)
+             where codalmacen = '" . $almacen->codalmacen . "' AND fecha = '" . $this->fecha_proceso . "'
+             and referencia = '" . $item['referencia'] . "'
+             group by hora, l.idstock, referencia, motivo
+             order by l.idstock;";
+            $data = $this->db->select($sql_regstocks);
+            if ($data) {
+               foreach ($data as $linea) {
+                  $resultados['kardex']['referencia'] = $item['referencia'];
+                  $resultados['kardex']['descripcion'] = $item['descripcion'];
+                  $resultados['kardex']['salida_cantidad'] += ($linea['cantidad'] <= 0) ? ($linea['cantidad'] * -1) : 0;
+                  $resultados['kardex']['ingreso_cantidad'] += ($linea['cantidad'] >= 0) ? $linea['cantidad'] : 0;
+                  $resultados['kardex']['salida_monto'] += ($linea['cantidad'] <= 0) ? ($item['costemedio'] * ($linea['cantidad'] * -1)) : 0;
+                  $resultados['kardex']['ingreso_monto'] += ($linea['cantidad'] >= 0) ? ($item['costemedio'] * $linea['cantidad']) : 0;
                }
             }
             gc_collect_cycles();

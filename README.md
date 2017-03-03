@@ -9,3 +9,5 @@ Se revisa:
 *Transferencias entre almacenes
 
 https://www.facturascripts.com
+
+*Licencia LGPL 3
