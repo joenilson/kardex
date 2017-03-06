@@ -121,7 +121,6 @@ class informe_analisisarticulos extends fs_controller {
             ));
         }
         
-       
         $this->kardex_setup = $fsvar->array_get(
                 array(
             'kardex_ultimo_proceso' => '',

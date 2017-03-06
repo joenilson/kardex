@@ -571,14 +571,32 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
                 groupOrder: ["asc", "asc", "asc"],
                 groupSummary: [true, true, true],
                 groupSummaryPos: ['footer', 'footer', 'header'],
-                groupCollapse: true
+                groupCollapse: false,
+                showSummaryOnHide: true
             },
             loadComplete : function(){
+                var grouppingOptions = {
+                    groupingView: {
+                        groupField: ["nombre", "descripcion", "fecha"],
+                        groupColumnShow: [true, true, true],
+                        groupText: [
+                            "<b>{0}</b>",
+                            "<b>{0}</b>",
+                            "<b>{0}</b>"
+                        ],
+                        groupOrder: ["asc", "asc", "asc"],
+                        groupSummary: [true, true, true],
+                        groupSummaryPos: ['footer', 'footer', 'header'],
+                        groupCollapse: true
+                    }
+                };
                 var valorizado = document.getElementById("valorizado").checked;
                 if(valorizado){
-                    $('#grid_kardex').jqGrid('showCol',["salida_monto","ingreso_monto","saldo_monto"]).trigger("reloadGrid");
+                    $('#grid_kardex').jqGrid('showCol',["salida_monto","ingreso_monto","saldo_monto"]);
+                    $('#grid_kardex').trigger("reloadGrid");
                 }else{
-                    $('#grid_kardex').jqGrid('hideCol',["salida_monto","ingreso_monto","saldo_monto"]).trigger("reloadGrid");                    
+                    $('#grid_kardex').jqGrid('hideCol',["salida_monto","ingreso_monto","saldo_monto"]);
+                    $('#grid_kardex').trigger("reloadGrid");
                 }
             },
         });
