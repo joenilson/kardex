@@ -483,7 +483,7 @@ class informe_analisisarticulos extends fs_controller {
         /*
          * Generamos la informacion de las facturas que se han generado sin albaran y que son de venta
          */
-        $sql_facturas = "select codalmacen,fc.fecha,fc.hora,fc.codigo,fc.idfactura,referencia,descripcion,descripcion,coddivisa,sum(cantidad) as cantidad, sum(pvptotal) as monto
+        $sql_facturas = "select codalmacen,fc.fecha,fc.hora,fc.codigo,fc.idfactura as documento,referencia,descripcion,descripcion,coddivisa,sum(cantidad) as cantidad, sum(pvptotal) as monto
         from facturascli as fc
         join lineasfacturascli as l ON (fc.idfactura=l.idfactura)
         where codalmacen = '" . stripcslashes(strip_tags(trim($almacen->codalmacen))) . "' AND fecha between '" . $this->fecha_inicio . "' and '" . $this->fecha_fin . "'
@@ -578,7 +578,7 @@ class informe_analisisarticulos extends fs_controller {
                 }
                 if(!isset($resultados[$linea['documento']]['ingreso_monto'])){
                     $resultados[$linea['documento']]['ingreso_monto'] = 0;
-                }                
+                }               
                 $idlinea = \date('Y-m-d H:i:s',strtotime($linea['fecha']." ".$linea['hora']));
                 $resultados[$linea['documento']]['codalmacen'] = $linea['codalmacen'];
                 $resultados[$linea['documento']]['nombre'] = $almacen->nombre;

@@ -89,7 +89,7 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
         </div>
     </div>
     <form id="f_generar_reporte" method="post" action='{$fsc->url()}'>
-        <input type="hidden" name="mostrar_reporte" id="mostrar_reporte" value=''>
+        <input type="hidden" name="mostrar_reporte" id="mostrar_reporte" value='{$fsc->mostrar}'>
         <div class="row">
             <div class="col-sm-2">
                 <div class="form-group">
@@ -561,16 +561,17 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
             grouping: true,
             hoverrows: true,
             groupingView: {
-                groupField: ["nombre", "descripcion"],
-                groupColumnShow: [true, true],
+                groupField: ["nombre", "descripcion", "fecha"],
+                groupColumnShow: [true, true, true],
                 groupText: [
+                    "<b>{0}</b>",
                     "<b>{0}</b>",
                     "<b>{0}</b>"
                 ],
-                groupOrder: ["asc", "asc"],
-                groupSummary: [true, true],
-                groupSummaryPos: ['footer', 'footer'],
-                groupCollapse: false
+                groupOrder: ["asc", "asc", "asc"],
+                groupSummary: [true, true, true],
+                groupSummaryPos: ['footer', 'footer', 'header'],
+                groupCollapse: true
             },
             loadComplete : function(){
                 var valorizado = document.getElementById("valorizado").checked;
