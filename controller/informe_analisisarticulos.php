@@ -687,14 +687,14 @@ class informe_analisisarticulos extends fs_controller {
         }
 
         foreach ($lista_export as $referencia => $listafecha) {
-            $lineas = 0;
-            $sumaSalidasQda[$referencia] = 0;
-            $sumaIngresosQda[$referencia] = 0;
-            if($this->valorizado){
-                $sumaSalidasMonto[$referencia] = 0;
-                $sumaIngresosMonto[$referencia] = 0;
-            }
+            $lineas = 0;     
             foreach ($listafecha as $fecha => $tipo_documentos) {
+                $sumaSalidasQda[$referencia] = 0;
+                $sumaIngresosQda[$referencia] = 0;
+                if($this->valorizado){
+                    $sumaSalidasMonto[$referencia] = 0;
+                    $sumaIngresosMonto[$referencia] = 0;
+                }
                 foreach ($tipo_documentos as $tipo_documento => $documentos) {
                     foreach ($documentos as $documento => $movimiento) {
                         if ($lineas == 0) {
