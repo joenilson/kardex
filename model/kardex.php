@@ -493,29 +493,6 @@ class kardex extends fs_model {
                   $resultados['kardex']['ingreso_monto'] += ($linea['monto'] <= 0) ? ($linea['monto'] * -1) : 0;
                }
             }
-            /*
-             * Guardamos el resultado de las consultas
-             */
-            foreach ($resultados as $valores) {
-               $valores['ingreso_cantidad'] = ($valores['ingreso_cantidad']) ? $valores['ingreso_cantidad'] : 0;
-               $valores['salida_cantidad'] = ($valores['salida_cantidad']) ? $valores['salida_cantidad'] : 0;
-               $valores['ingreso_monto'] = ($valores['ingreso_monto']) ? $valores['ingreso_monto'] : 0;
-               $valores['salida_monto'] = ($valores['salida_monto']) ? $valores['salida_monto'] : 0;
-               $kardex0 = new kardex();
-               $kardex0->codalmacen = $almacen->codalmacen;
-               $kardex0->fecha = $this->fecha_proceso;
-               $kardex0->referencia = $valores['referencia'];
-               $kardex0->descripcion = $valores['descripcion'];
-               $kardex0->cantidad_ingreso = $valores['ingreso_cantidad'];
-               $kardex0->cantidad_salida = $valores['salida_cantidad'];
-               $kardex0->cantidad_saldo = ($valores['cantidad_inicial'] + ($valores['ingreso_cantidad'] - $valores['salida_cantidad']));
-               $kardex0->monto_ingreso = $valores['ingreso_monto'];
-               $kardex0->monto_salida = $valores['salida_monto'];
-               $kardex0->monto_saldo = ($valores['monto_inicial'] + ($valores['ingreso_monto'] - $valores['salida_monto']));
-               if ($kardex0->cantidad_saldo != 0) {
-                  $kardex0->save();
-               }
-            }
             
             //Si existen estas tablas se genera la información de las transferencias de stock
             if( $this->db->table_exists('transstock', $this->tablas) AND $this->db->table_exists('lineastransstock', $this->tablas) ){
@@ -579,11 +556,47 @@ class kardex extends fs_model {
                foreach ($data as $linea) {
                   $resultados['kardex']['referencia'] = $item['referencia'];
                   $resultados['kardex']['descripcion'] = $item['descripcion'];
-                  $resultados['kardex']['salida_cantidad'] += ($linea['cantidad'] <= 0) ? ($linea['cantidad'] * -1) : 0;
-                  $resultados['kardex']['ingreso_cantidad'] += ($linea['cantidad'] >= 0) ? $linea['cantidad'] : 0;
-                  $resultados['kardex']['salida_monto'] += ($linea['cantidad'] <= 0) ? ($item['costemedio'] * ($linea['cantidad'] * -1)) : 0;
-                  $resultados['kardex']['ingreso_monto'] += ($linea['cantidad'] >= 0) ? ($item['costemedio'] * $linea['cantidad']) : 0;
+                  $resultados['kardex']['regularizacion_cantidad'] = $linea['cantidad'];
+                  $resultados['kardex']['regularizacion_monto'] = ($item['costemedio'] * $linea['cantidad']);
+                  $resultados['kardex']['salida_cantidad'] = 0;
+                  $resultados['kardex']['ingreso_cantidad'] = 0;
+                  $resultados['kardex']['salida_monto'] = 0;
+                  $resultados['kardex']['ingreso_monto'] = 0;
                }
+            }
+            
+            /*
+             * Guardamos el resultado de las consultas
+             */
+            foreach ($resultados as $valores) {
+               $valores['ingreso_cantidad'] = ($valores['ingreso_cantidad']) ? $valores['ingreso_cantidad'] : 0;
+               $valores['salida_cantidad'] = ($valores['salida_cantidad']) ? $valores['salida_cantidad'] : 0;
+               $valores['ingreso_monto'] = ($valores['ingreso_monto']) ? $valores['ingreso_monto'] : 0;
+               $valores['salida_monto'] = ($valores['salida_monto']) ? $valores['salida_monto'] : 0;
+               $kardex0 = new kardex();
+               $kardex0->codalmacen = $almacen->codalmacen;
+               $kardex0->fecha = $this->fecha_proceso;
+               $kardex0->referencia = $valores['referencia'];
+               $kardex0->descripcion = $valores['descripcion'];
+               $kardex0->cantidad_ingreso = $valores['ingreso_cantidad'];
+               $kardex0->cantidad_salida = $valores['salida_cantidad'];
+               $kardex0->cantidad_saldo = ($valores['cantidad_inicial'] + ($valores['ingreso_cantidad'] - $valores['salida_cantidad']));
+               $kardex0->monto_ingreso = $valores['ingreso_monto'];
+               $kardex0->monto_salida = $valores['salida_monto'];
+               $kardex0->monto_saldo = ($valores['monto_inicial'] + ($valores['ingreso_monto'] - $valores['salida_monto']));
+               //Cuando se tiene regularizaciones hacemos el cuadre que confirma que este stock está saliendo o entrando como regularización
+               if(isset($valores['regularizacion_cantidad'])){
+                    $cantidadRegularizacion = $kardex0->cantidad_saldo-$valores['regularizacion_cantidad'];
+                    $kardex0->cantidad_ingreso = ($cantidadRegularizacion < 0)?$cantidadRegularizacion*-1:0;
+                    $kardex0->cantidad_salida = ($cantidadRegularizacion > 0)?($cantidadRegularizacion):0;
+                    $kardex0->cantidad_saldo = ($valores['cantidad_inicial'] + ($kardex0->cantidad_ingreso - $kardex0->cantidad_salida));
+                    $montoRegularizacion = $kardex0->monto_saldo-$valores['regularizacion_monto'];
+                    $kardex0->monto_ingreso = ($montoRegularizacion > 0)?$montoRegularizacion:0;
+                    $kardex0->monto_salida = ($montoRegularizacion < 0)?($montoRegularizacion*-1):0;
+                    $kardex0->monto_saldo = ($valores['monto_inicial'] + ($kardex0->monto_ingreso - $kardex0->monto_salida));
+                }
+                //Guardarmos el resultado
+                $kardex0->save();
             }
             gc_collect_cycles();
          }
