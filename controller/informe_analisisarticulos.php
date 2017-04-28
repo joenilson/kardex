@@ -122,13 +122,13 @@ class informe_analisisarticulos extends fs_controller {
         }
         
         $this->kardex_setup = $fsvar->array_get(
-                array(
-            'kardex_ultimo_proceso' => '',
-            'kardex_cron' => '',
-            'kardex_programado' => '',
-            'kardex_procesandose' => 'FALSE',
-            'kardex_usuario_procesando' => ''
-                ), FALSE
+            array(
+                'kardex_ultimo_proceso' => '',
+                'kardex_cron' => '',
+                'kardex_programado' => '',
+                'kardex_procesandose' => 'FALSE',
+                'kardex_usuario_procesando' => ''
+            ), FALSE
         );
 
         
