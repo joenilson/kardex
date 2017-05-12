@@ -638,15 +638,17 @@ class kardex extends fs_model {
       }
       //Si no hay nada tenemos que ejecutar un proceso para todas las fechas desde el registro más antiguo
       else {
-         $select = "SELECT
-            CASE
-            WHEN min(l.fecha) <= min(ap.fecha) AND min(l.fecha) <= min(ac.fecha) AND min(l.fecha) <= min(fp.fecha) AND min(l.fecha) <= min(fc.fecha) THEN min(l.fecha)
-            WHEN min(ap.fecha) <= min(ac.fecha) AND min(ap.fecha) <= min(fp.fecha) AND min(ap.fecha) <= min(fc.fecha) THEN min(ap.fecha)
-            WHEN min(ac.fecha) <= min(fp.fecha) AND min(ac.fecha) <= min(fc.fecha) THEN min(ac.fecha)
-            WHEN min(fp.fecha) <= min(fc.fecha) THEN min(fp.fecha)
-            ELSE min(fc.fecha)
-            END AS fecha
-           FROM lineasregstocks as l, albaranesprov as ap, albaranescli as ac, facturasprov as fp, facturascli as fc;";
+         $select = "SELECT min(fecha) as fecha FROM ( ".
+            " SELECT min(fecha) AS fecha FROM lineasregstocks ".
+            " UNION ".
+            " SELECT min(fecha) AS fecha FROM albaranesprov ".
+            " UNION ".
+            " SELECT min(fecha) AS fecha FROM albaranescli ".
+            " UNION ".
+            " SELECT min(fecha) AS fecha FROM facturasprov ".
+            " UNION ".
+            " SELECT min(fecha) AS fecha FROM facturascli ".
+            " ) AS t1;";
          $min_fecha = $this->db->select($select);
          $min_fecha_inicio0 = new DateTime($min_fecha[0]['fecha']);
          $min_fecha_inicio = $min_fecha_inicio0->format('Y-m-d');
@@ -660,6 +662,7 @@ class kardex extends fs_model {
    public function rango_fechas() {
       $begin = new DateTime($this->fecha_inicio);
       $end = new DateTime($this->fecha_fin);
+      $end->modify("+1 day");
       $interval = new DateInterval('P1D');
       $daterange = new DatePeriod($begin, $interval, $end);
       return $daterange;
