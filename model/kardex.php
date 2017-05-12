@@ -660,6 +660,7 @@ class kardex extends fs_model {
    public function rango_fechas() {
       $begin = new DateTime($this->fecha_inicio);
       $end = new DateTime($this->fecha_fin);
+      $end->modify("+1 day");
       $interval = new DateInterval('P1D');
       $daterange = new DatePeriod($begin, $interval, $end);
       return $daterange;
