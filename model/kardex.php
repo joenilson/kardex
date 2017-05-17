@@ -473,6 +473,7 @@ class kardex extends fs_model {
 
             /*
              * Generamos la informacion de los albaranes no asociados a facturas
+             * Asi sea una salida en negativo la colocamos como salida para que netee las salidas
              */
             $sql_albaranes = "select ac.idalbaran,referencia,coddivisa,tasaconv,sum(cantidad) as cantidad, sum(pvptotal) as monto
                       from albaranescli as ac

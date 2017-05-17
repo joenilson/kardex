@@ -301,6 +301,7 @@ class informe_analisisarticulos extends fs_controller {
             $this->Transferencias($almacen,$productos);
         }
         if($this->mostrar == 'todo' OR $this->mostrar=='venta'){
+            $this->ConducesSinFactura($almacen,$productos);
             $this->Ventas($almacen,$productos);
         }
         if($this->mostrar == 'todo' OR $this->mostrar=='devolucion-venta'){
@@ -369,6 +370,9 @@ class informe_analisisarticulos extends fs_controller {
                 }elseif($tipo=='salida'){
                     $resultados[$linea['documento']]['salida_monto'] = ($linea['monto'] >= 0) ? $linea['monto'] : 0;
                     $resultados[$linea['documento']]['ingreso_monto'] = ($linea['monto'] <= 0) ? ($linea['monto']*-1) : 0;
+                }elseif($tipo=='salida_no_facturada'){
+                    $resultados[$linea['documento']]['salida_monto'] = $linea['monto'];
+                    $resultados[$linea['documento']]['ingreso_monto'] = 0;
                 }
             }
             $resultados[$linea['documento']]['codalmacen'] = $linea['codalmacen'];
@@ -384,6 +388,9 @@ class informe_analisisarticulos extends fs_controller {
             }elseif($tipo=='salida'){
                 $resultados[$linea['documento']]['salida_cantidad'] = ($linea['cantidad'] >= 0) ? $linea['cantidad'] : 0;
                 $resultados[$linea['documento']]['ingreso_cantidad'] = ($linea['cantidad'] <= 0) ? $linea['cantidad'] : 0;
+            }elseif($tipo=='salida_no_facturada'){
+                $resultados[$linea['documento']]['salida_cantidad'] = $linea['cantidad'];
+                $resultados[$linea['documento']]['ingreso_cantidad'] = 0;
             }
             
             $this->lista[$idlinea][] = $resultados[$linea['documento']];
@@ -463,6 +470,24 @@ class informe_analisisarticulos extends fs_controller {
         }
     }
 
+    public function ConducesSinFactura($almacen,$productos) {
+        /*
+         * Generamos la informacion de los albaranes no asociados a facturas
+         */
+        $sql_albaranes_sin_factura = "select codalmacen,ac.fecha,ac.hora,ac.codigo,ac.idalbaran as documento,referencia,descripcion,coddivisa, tasaconv,observaciones,sum(cantidad) as cantidad, sum(pvptotal) as monto
+        from albaranescli as ac
+        join lineasalbaranescli as l ON (ac.idalbaran=l.idalbaran)
+        where codalmacen = '" . stripcslashes(strip_tags(trim($almacen->codalmacen))) . "' AND fecha between '" . $this->fecha_inicio . "' and '" . $this->fecha_fin . "'
+        and idfactura is null
+        and l.referencia in ($productos)
+        group by codalmacen,ac.fecha,ac.hora,ac.codigo, ac.idalbaran,referencia,descripcion,coddivisa, tasaconv,observaciones
+        order by codalmacen,referencia,fecha,hora;";
+        $data2 = $this->db->select($sql_albaranes_sin_factura);
+        if ($data2) {
+            $this->procesar_informacion($almacen,$data2,ucfirst(FS_ALBARAN) . " " . K::kardex_VentaNoFacturada,'salida_no_facturada');
+        }
+    }
+    
     public function Ventas($almacen,$productos) {
         /*
          * Generamos la informacion de los albaranes asociados a facturas no anuladas
@@ -478,22 +503,6 @@ class informe_analisisarticulos extends fs_controller {
         $data1 = $this->db->select($sql_albaranes);
         if ($data1) {
             $this->procesar_informacion($almacen,$data1,ucfirst(FS_ALBARAN) . " " . K::kardex_Venta,'salida');
-        }
-
-        /*
-         * Generamos la informacion de los albaranes no asociados a facturas
-         */
-        $sql_albaranes_sin_factura = "select codalmacen,ac.fecha,ac.hora,ac.codigo,ac.idalbaran as documento,referencia,descripcion,coddivisa, tasaconv,sum(cantidad) as cantidad, sum(pvptotal) as monto
-        from albaranescli as ac
-        join lineasalbaranescli as l ON (ac.idalbaran=l.idalbaran)
-        where codalmacen = '" . stripcslashes(strip_tags(trim($almacen->codalmacen))) . "' AND fecha between '" . $this->fecha_inicio . "' and '" . $this->fecha_fin . "'
-        and idfactura is null
-        and l.referencia in ($productos)
-        group by codalmacen,ac.fecha,ac.hora,ac.codigo, ac.idalbaran,referencia,descripcion,coddivisa, tasaconv
-        order by codalmacen,referencia,fecha,hora;";
-        $data2 = $this->db->select($sql_albaranes_sin_factura);
-        if ($data2) {
-            $this->procesar_informacion($almacen,$data2,ucfirst(FS_ALBARAN) . " " . K::kardex_VentaNoFacturada,'salida');
         }
 
         /*
@@ -655,8 +664,10 @@ class informe_analisisarticulos extends fs_controller {
                 if (!isset($lista_export[$value['referencia']][$value['fecha']][$value['tipo_documento']][$value['documento']]['ingreso_cantidad'])) {
                     $lista_export[$value['referencia']][$value['fecha']][$value['tipo_documento']][$value['documento']]['ingreso_cantidad'] = 0;
                 }
-                $value['ingreso_cantidad'] = ($value['ingreso_cantidad'] < 0) ? $value['ingreso_cantidad'] * -1 : $value['ingreso_cantidad'];
-                $value['salida_cantidad'] = ($value['salida_cantidad'] < 0) ? $value['salida_cantidad'] * -1 : $value['salida_cantidad'];
+                //$value['ingreso_cantidad'] = ($value['ingreso_cantidad'] < 0) ? $value['ingreso_cantidad'] * -1 : $value['ingreso_cantidad'];
+                //$value['salida_cantidad'] = ($value['salida_cantidad'] < 0) ? $value['salida_cantidad'] * -1 : $value['salida_cantidad'];
+                $value['ingreso_cantidad'] = $value['ingreso_cantidad'];
+                $value['salida_cantidad'] = $value['salida_cantidad'];
                 $saldoCantidadInicial = ($value['tipo_documento'] == 'Saldo Inicial') ? $value['saldo_cantidad'] : 0;
                 $resumen[$value['codalmacen']][$value['referencia']]['saldo_cantidad'] += ($saldoCantidadInicial + ($value['ingreso_cantidad'] - $value['salida_cantidad']));
 
@@ -676,8 +687,10 @@ class informe_analisisarticulos extends fs_controller {
                 }
                 
                 if($this->valorizado){
-                    $value['ingreso_monto'] = ($value['ingreso_monto'] < 0) ? $value['ingreso_monto'] * -1 : $value['ingreso_monto'];
-                    $value['salida_monto'] = ($value['salida_monto'] < 0) ? $value['salida_monto'] * -1 : $value['salida_monto'];
+                    //$value['ingreso_monto'] = ($value['ingreso_monto'] < 0) ? $value['ingreso_monto'] * -1 : $value['ingreso_monto'];
+                    //$value['salida_monto'] = ($value['salida_monto'] < 0) ? $value['salida_monto'] * -1 : $value['salida_monto'];
+                    $value['ingreso_monto'] = $value['ingreso_monto'];
+                    $value['salida_monto'] = $value['salida_monto'];
                     $saldoMontoInicial = ($value['tipo_documento'] == 'Saldo Inicial') ? $value['saldo_monto'] : 0;
                     $resumen[$value['codalmacen']][$value['referencia']]['saldo_monto'] += ($saldoMontoInicial + ($value['ingreso_monto'] - $value['salida_monto']));
                     $linea_resultado['saldo_monto'] = ($value['tipo_documento'] == 'Saldo Inicial') ? $value['saldo_monto'] : $resumen[$value['codalmacen']][$value['referencia']]['saldo_monto'];
