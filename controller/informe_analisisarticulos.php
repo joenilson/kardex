@@ -381,7 +381,7 @@ class informe_analisisarticulos extends fs_controller {
             $resultados[$linea['documento']]['tipo_documento'] = $documento. " ".$linea['codigo'];
             $resultados[$linea['documento']]['documento'] = $linea['documento'];
             $resultados[$linea['documento']]['referencia'] = $linea['referencia'];
-            $resultados[$linea['documento']]['descripcion'] = stripcslashes($linea['descripcion']);
+            $resultados[$linea['documento']]['descripcion'] = $linea['referencia'].' - '.stripcslashes($linea['descripcion']);
             if($tipo=='ingreso'){
                 $resultados[$linea['documento']]['salida_cantidad'] = ($linea['cantidad'] <= 0) ? $linea['cantidad'] : 0;
                 $resultados[$linea['documento']]['ingreso_cantidad'] = ($linea['cantidad'] >= 0) ? $linea['cantidad'] : 0;
