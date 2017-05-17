@@ -140,6 +140,10 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
                     <button class="btn btn-sm btn-primary" type="submit" id="b_generar_reporte" name="buscar">
                         {function="L::kardex_botonGenerar"}
                     </button>
+                    <button id="generando" class="btn btn-sm btn-info" disabled="" style="display: none;">
+                        <i class="fa fa-spinner fa-pulse fa-fw"></i>
+                        <span>{function="L::kardex_botonGenerando"}</span>
+                    </button>
                 </div>
             </div>
             <div class="col-sm-1">
@@ -390,6 +394,9 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
     }
 
     function get_stock() {
+        $('#b_descargar_reporte').hide();
+        $('#b_generar_reporte').hide();
+        $('#generando').show();
         var valorizado = document.getElementById("valorizado").checked;
         var inicio = $('#inicio').val();
         var fin = $('#fin').val();
@@ -415,6 +422,8 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
                 if (datos.rows.length !== 0) {
                     $('#b_descargar_reporte').attr('href', datos.filename);
                     $('#b_descargar_reporte').show();
+                    $('#b_generar_reporte').show();
+                    $('#generando').hide();
                 }
             }
         });
