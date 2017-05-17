@@ -78,7 +78,7 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
         <div class="col-sm-12">
             {if="$fsc->kardex_procesandose"}
             <div class="alert alert-warning">
-                {function="L::kardex_BloqueAyudaCalculoEjecutandose('$fsc->kardex_usuario_procesando')"}
+                {function="L::kardex_BloqueAyudaCalculoEjecutandose('{$fsc->kardex_usuario_procesando}')"}
             </div>
             {/if}
             {if="$fsc->kardex_ultimo_proceso==''"}

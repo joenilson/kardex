@@ -396,6 +396,30 @@ class kardex extends fs_model {
                   $resultados['kardex']['ingreso_monto'] += ($linea['monto'] >= 0) ? $linea['monto'] : 0;
                }
             }
+            
+            /*
+             * Generamos la informacion de los albaranes de proveedor no asociados a facturas
+             */
+            $sql_albaranes = "select ac.idalbaran,referencia,coddivisa,tasaconv,sum(cantidad) as cantidad, sum(pvptotal) as monto
+            from albaranesprov as ac
+            join lineasalbaranesprov as l ON (ac.idalbaran=l.idalbaran)
+            where codalmacen = '" . $almacen->codalmacen . "' AND fecha = '" . $this->fecha_proceso . "'
+            and idfactura is null
+            and referencia = '" . $item['referencia'] . "'
+            group by ac.idalbaran,l.referencia,coddivisa,tasaconv 
+            order by ac.idalbaran;";
+            $data = $this->db->select($sql_albaranes);
+            if ($data) {
+               foreach ($data as $linea) {
+                  $linea['monto'] = ($linea['coddivisa']!=$this->empresa->coddivisa)?$this->euro_convert($this->divisa_convert($linea['monto'], $linea['coddivisa'], 'EUR')):$linea['monto'];
+                  $resultados['kardex']['referencia'] = $item['referencia'];
+                  $resultados['kardex']['descripcion'] = $item['descripcion'];
+                  $resultados['kardex']['salida_cantidad'] += ($linea['cantidad'] <= 0) ? ($linea['cantidad'] * -1) : 0;
+                  $resultados['kardex']['ingreso_cantidad'] += ($linea['cantidad'] >= 0) ? $linea['cantidad'] : 0;
+                  $resultados['kardex']['salida_monto'] += ($linea['monto'] <= 0) ? ($linea['monto'] * -1) : 0;
+                  $resultados['kardex']['ingreso_monto'] += ($linea['monto'] >= 0) ? $linea['monto'] : 0;
+               }
+            }
 
             /*
              * Generamos la informacion de las facturas de proveedor ingresadas

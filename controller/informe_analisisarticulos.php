@@ -408,6 +408,23 @@ class informe_analisisarticulos extends fs_controller {
         if ($data1) {
             $this->procesar_informacion($almacen, $data1, ucfirst(FS_ALBARAN) . " " . K::kardex_Compra,'ingreso');
         }
+        
+        /*
+         * Generamos la informacion de los albaranes de proveedor asociados a facturas no anuladas
+         */
+        $sql_albaranes = "select codalmacen,ac.fecha,ac.hora,ac.codigo,ac.idalbaran as documento,a.referencia,a.descripcion, coddivisa, tasaconv, sum(cantidad) as cantidad, sum(pvptotal) as monto
+        from albaranesprov as ac
+        join lineasalbaranesprov as l ON (ac.idalbaran=l.idalbaran)
+        JOIN articulos as a ON(a.referencia = l.referencia)
+        where codalmacen = '" . stripcslashes(strip_tags(trim($almacen->codalmacen))) . "' AND fecha between '" . $this->fecha_inicio . "' and '" . $this->fecha_fin . "'
+        and idfactura is null
+        and l.referencia in ($productos)
+        group by codalmacen,ac.fecha,ac.hora,ac.codigo,ac.idalbaran,a.referencia,a.descripcion, coddivisa, tasaconv
+        order by codalmacen,a.referencia,fecha,hora;";
+        $data1 = $this->db->select($sql_albaranes);
+        if ($data1) {
+            $this->procesar_informacion($almacen, $data1, ucfirst(FS_ALBARAN) . " " . K::kardex_Compra,'ingreso');
+        }
 
         /*
          * Generamos la informacion de las facturas de proveedor ingresadas
@@ -736,21 +753,21 @@ class informe_analisisarticulos extends fs_controller {
                 }
                 $this->writer->writeSheetRow(
                     $almacen->nombre, 
-                    array($fecha, '', '', '', K::kardex_SaldoDiario, $sumaSalidasQda[$referencia], $sumaIngresosQda[$referencia], ($saldoInicial[$referencia] + $sumaIngresosQda[$referencia] - $sumaSalidasQda[$referencia]))
+                    array($fecha, '', '', $referencia, K::kardex_SaldoDiario, $sumaSalidasQda[$referencia], $sumaIngresosQda[$referencia], ($saldoInicial[$referencia] + $sumaIngresosQda[$referencia] - $sumaSalidasQda[$referencia]))
                     ,$this->estilo_pie
                 );
             }
             if($this->valorizado){
                 $this->writer->writeSheetRow(
                         $almacen->nombre, 
-                        array('', '', '', '', K::kardex_SaldoFinal, $sumaSalidasQda[$referencia], $sumaSalidasMonto[$referencia], $sumaIngresosQda[$referencia], $sumaIngresosMonto[$referencia], ($saldoInicial[$referencia] + $sumaIngresosQda[$referencia] - $sumaSalidasQda[$referencia]), ($sumaIngresosMonto[$referencia] - $sumaSalidasMonto[$referencia]))
+                        array('', '', '', $referencia, K::kardex_SaldoFinal, $sumaSalidasQda[$referencia], $sumaSalidasMonto[$referencia], $sumaIngresosQda[$referencia], $sumaIngresosMonto[$referencia], ($saldoInicial[$referencia] + $sumaIngresosQda[$referencia] - $sumaSalidasQda[$referencia]), ($sumaIngresosMonto[$referencia] - $sumaSalidasMonto[$referencia]))
                         ,$this->estilo_pie
                     );
                 $this->writer->writeSheetRow($almacen->nombre, array('', '', '', '', '', '', '', '', '', '', ''));
             }else{
                 $this->writer->writeSheetRow(
                         $almacen->nombre, 
-                        array('', '', '', '', K::kardex_SaldoFinal, $sumaSalidasQda[$referencia], $sumaIngresosQda[$referencia], ($saldoInicial[$referencia] + $sumaIngresosQda[$referencia] - $sumaSalidasQda[$referencia]))
+                        array('', '', '', $referencia, K::kardex_SaldoFinal, $sumaSalidasQda[$referencia], $sumaIngresosQda[$referencia], ($saldoInicial[$referencia] + $sumaIngresosQda[$referencia] - $sumaSalidasQda[$referencia]))
                         ,$this->estilo_pie
                     );
                 $this->writer->writeSheetRow($almacen->nombre, array('', '', '', '', '', '', '', ''));
