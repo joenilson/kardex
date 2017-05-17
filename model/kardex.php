@@ -205,7 +205,7 @@ class kardex extends fs_model {
             'kardex_usuario_procesando' => 'cron'
         ), FALSE
       );
-      
+
       if ($this->kardex_setup['kardex_procesandose'] == 'TRUE' AND ( $this->cron)) {
          echo " ** Hay otro proceso calculando Kardex se cancela el proceso cron...\n";
          return false;
@@ -279,7 +279,7 @@ class kardex extends fs_model {
          gc_collect_cycles();
       }
    }
-   
+
     /**
      * Con esta funcion se genera la información para el Inventario de Artículos
      * @param type $almacen object \FacturaScripts\model\core\almacen
@@ -327,12 +327,12 @@ class kardex extends fs_model {
                 $resultados[$linea['documento']]['salida_cantidad'] = ($linea['cantidad'] >= 0) ? $linea['cantidad'] : 0;
                 $resultados[$linea['documento']]['ingreso_cantidad'] = ($linea['cantidad'] <= 0) ? $linea['cantidad'] : 0;
             }
-            
+
             $this->lista[$idlinea][] = $resultados[$linea['documento']];
             $this->total_resultados++;
         }
     }
-   
+
 
    /*
     * Esta es la consulta multiple que utilizamos para sacar la información
@@ -353,7 +353,7 @@ class kardex extends fs_model {
             $resultados['kardex']['ingreso_monto'] = 0;
             $resultados['kardex']['cantidad_inicial'] = 0;
             $resultados['kardex']['monto_inicial'] = 0;
-            
+
             /*
              * Generamos la informacion del saldo final del dia anterior segun Inventario diario
              */
@@ -382,7 +382,7 @@ class kardex extends fs_model {
             where codalmacen = '" . $almacen->codalmacen . "' AND fecha = '" . $this->fecha_proceso . "'
             and idfactura is not null
             and referencia = '" . $item['referencia'] . "'
-            group by ac.idalbaran,l.referencia,coddivisa,tasaconv 
+            group by ac.idalbaran,l.referencia,coddivisa,tasaconv
             order by ac.idalbaran;";
             $data = $this->db->select($sql_albaranes);
             if ($data) {
@@ -431,7 +431,7 @@ class kardex extends fs_model {
             where codalmacen = '" . $almacen->codalmacen . "' AND fecha = '" . $this->fecha_proceso . "'
             and anulada=FALSE and idalbaran is null
             and referencia = '" . $item['referencia'] . "'
-            group by fc.idfactura,referencia,coddivisa,tasaconv 
+            group by fc.idfactura,referencia,coddivisa,tasaconv
             order by fc.idfactura;";
             $data = $this->db->select($sql_facturasprov);
             if ($data) {
@@ -455,12 +455,12 @@ class kardex extends fs_model {
                       where codalmacen = '" . $almacen->codalmacen . "' AND fecha = '" . $this->fecha_proceso . "'
                       and idfactura is not null
                       and referencia = '" . $item['referencia'] . "'
-                      group by ac.idalbaran,referencia,coddivisa,tasaconv 
+                      group by ac.idalbaran,referencia,coddivisa,tasaconv
                       order by ac.idalbaran;";
             $data = $this->db->select($sql_albaranes);
             if ($data) {
                foreach ($data as $linea) {
-                  $linea['monto'] = ($linea['coddivisa']!=$this->empresa->coddivisa)?$this->euro_convert($this->divisa_convert($linea['monto'], $linea['coddivisa'], 'EUR')):$linea['monto'];                   
+                  $linea['monto'] = ($linea['coddivisa']!=$this->empresa->coddivisa)?$this->euro_convert($this->divisa_convert($linea['monto'], $linea['coddivisa'], 'EUR')):$linea['monto'];
                   $resultados['kardex']['referencia'] = $item['referencia'];
                   $resultados['kardex']['descripcion'] = $item['descripcion'];
                   $resultados['kardex']['salida_cantidad'] += ($linea['cantidad'] >= 0) ? $linea['cantidad'] : 0;
@@ -479,7 +479,7 @@ class kardex extends fs_model {
                       where codalmacen = '" . $almacen->codalmacen . "' AND fecha = '" . $this->fecha_proceso . "'
                       and idfactura is null
                       and referencia = '" . $item['referencia'] . "'
-                      group by ac.idalbaran,referencia,coddivisa,tasaconv 
+                      group by ac.idalbaran,referencia,coddivisa,tasaconv
                       order by ac.idalbaran;";
             $data = $this->db->select($sql_albaranes);
             if ($data) {
@@ -503,7 +503,7 @@ class kardex extends fs_model {
                 where codalmacen = '" . $almacen->codalmacen . "' AND fecha = '" . $this->fecha_proceso . "'
                 and anulada=FALSE and idalbaran is null
                 and referencia = '" . $item['referencia'] . "'
-                group by fc.idfactura,referencia,coddivisa,tasaconv 
+                group by fc.idfactura,referencia,coddivisa,tasaconv
                 order by fc.idfactura;";
             $data = $this->db->select($sql_facturas);
             if ($data) {
@@ -517,7 +517,7 @@ class kardex extends fs_model {
                   $resultados['kardex']['ingreso_monto'] += ($linea['monto'] <= 0) ? ($linea['monto'] * -1) : 0;
                }
             }
-            
+
             //Si existen estas tablas se genera la información de las transferencias de stock
             if( $this->db->table_exists('transstock', $this->tablas) AND $this->db->table_exists('lineastransstock', $this->tablas) ){
                 /*
@@ -541,7 +541,7 @@ class kardex extends fs_model {
                       $resultados['kardex']['ingreso_monto'] += ($linea['cantidad'] >= 0) ? ($item['costemedio'] * $linea['cantidad']) : 0;
                    }
                 }
-            
+
                 /*
                  * Generamos la informacion de las transferencias por salidas entre almacenes que se hayan hecho a los stocks
                  */
@@ -564,7 +564,7 @@ class kardex extends fs_model {
                    }
                 }
             }
-            
+
             /*
              * Generamos la informacion de las regularizaciones que se hayan hecho a los stocks
              */
@@ -588,7 +588,7 @@ class kardex extends fs_model {
                   $resultados['kardex']['ingreso_monto'] = 0;
                }
             }
-            
+
             /*
              * Guardamos el resultado de las consultas
              */
@@ -646,13 +646,11 @@ class kardex extends fs_model {
       }else{
          return false;
       }
-
    }
 
    /*
     * Buscamos la fecha del ultimo ingreso en el Kardex
     */
-
    public function ultima_fecha() {
       // Buscamos el registro más antiguo en la tabla de kardex
       $min_fecha = $this->db->select("SELECT max(fecha) as fecha FROM kardex;");
@@ -664,15 +662,17 @@ class kardex extends fs_model {
       }
       //Si no hay nada tenemos que ejecutar un proceso para todas las fechas desde el registro más antiguo
       else {
-         $select = "SELECT
-            CASE
-            WHEN min(l.fecha) <= min(ap.fecha) AND min(l.fecha) <= min(ac.fecha) AND min(l.fecha) <= min(fp.fecha) AND min(l.fecha) <= min(fc.fecha) THEN min(l.fecha)
-            WHEN min(ap.fecha) <= min(ac.fecha) AND min(ap.fecha) <= min(fp.fecha) AND min(ap.fecha) <= min(fc.fecha) THEN min(ap.fecha)
-            WHEN min(ac.fecha) <= min(fp.fecha) AND min(ac.fecha) <= min(fc.fecha) THEN min(ac.fecha)
-            WHEN min(fp.fecha) <= min(fc.fecha) THEN min(fp.fecha)
-            ELSE min(fc.fecha)
-            END AS fecha
-           FROM lineasregstocks as l, albaranesprov as ap, albaranescli as ac, facturasprov as fp, facturascli as fc;";
+         $select = "SELECT min(fecha) as fecha FROM ( ".
+            " SELECT min(fecha) AS fecha FROM lineasregstocks ".
+            " UNION ".
+            " SELECT min(fecha) AS fecha FROM albaranesprov ".
+            " UNION ".
+            " SELECT min(fecha) AS fecha FROM albaranescli ".
+            " UNION ".
+            " SELECT min(fecha) AS fecha FROM facturasprov ".
+            " UNION ".
+            " SELECT min(fecha) AS fecha FROM facturascli ".
+            " ) AS t1;";
          $min_fecha = $this->db->select($select);
          $min_fecha_inicio0 = new DateTime($min_fecha[0]['fecha']);
          $min_fecha_inicio = $min_fecha_inicio0->format('Y-m-d');
@@ -686,11 +686,12 @@ class kardex extends fs_model {
    public function rango_fechas() {
       $begin = new DateTime($this->fecha_inicio);
       $end = new DateTime($this->fecha_fin);
+      $end->modify("+1 day");
       $interval = new DateInterval('P1D');
       $daterange = new DatePeriod($begin, $interval, $end);
       return $daterange;
    }
-   
+
    public function euro_convert($precio, $coddivisa = NULL, $tasaconv = NULL)
    {
       if($this->empresa->coddivisa == 'EUR')
@@ -714,7 +715,7 @@ class kardex extends fs_model {
          return $this->divisa_convert($precio, 'EUR', $this->empresa->coddivisa);
       }
    }
-   
+
    /**
     * Convierte un precio de la divisa_desde a la divisa especificada
     * @param type $precio
@@ -737,7 +738,7 @@ class kardex extends fs_model {
             }
          }
       }
-      
+
       return $precio;
    }
 
