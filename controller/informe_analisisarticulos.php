@@ -664,10 +664,6 @@ class informe_analisisarticulos extends fs_controller {
                 if (!isset($lista_export[$value['referencia']][$value['fecha']][$value['tipo_documento']][$value['documento']]['ingreso_cantidad'])) {
                     $lista_export[$value['referencia']][$value['fecha']][$value['tipo_documento']][$value['documento']]['ingreso_cantidad'] = 0;
                 }
-                //$value['ingreso_cantidad'] = ($value['ingreso_cantidad'] < 0) ? $value['ingreso_cantidad'] * -1 : $value['ingreso_cantidad'];
-                //$value['salida_cantidad'] = ($value['salida_cantidad'] < 0) ? $value['salida_cantidad'] * -1 : $value['salida_cantidad'];
-                $value['ingreso_cantidad'] = $value['ingreso_cantidad'];
-                $value['salida_cantidad'] = $value['salida_cantidad'];
                 $saldoCantidadInicial = ($value['tipo_documento'] == 'Saldo Inicial') ? $value['saldo_cantidad'] : 0;
                 $resumen[$value['codalmacen']][$value['referencia']]['saldo_cantidad'] += ($saldoCantidadInicial + ($value['ingreso_cantidad'] - $value['salida_cantidad']));
 
@@ -687,10 +683,6 @@ class informe_analisisarticulos extends fs_controller {
                 }
                 
                 if($this->valorizado){
-                    //$value['ingreso_monto'] = ($value['ingreso_monto'] < 0) ? $value['ingreso_monto'] * -1 : $value['ingreso_monto'];
-                    //$value['salida_monto'] = ($value['salida_monto'] < 0) ? $value['salida_monto'] * -1 : $value['salida_monto'];
-                    $value['ingreso_monto'] = $value['ingreso_monto'];
-                    $value['salida_monto'] = $value['salida_monto'];
                     $saldoMontoInicial = ($value['tipo_documento'] == 'Saldo Inicial') ? $value['saldo_monto'] : 0;
                     $resumen[$value['codalmacen']][$value['referencia']]['saldo_monto'] += ($saldoMontoInicial + ($value['ingreso_monto'] - $value['salida_monto']));
                     $linea_resultado['saldo_monto'] = ($value['tipo_documento'] == 'Saldo Inicial') ? $value['saldo_monto'] : $resumen[$value['codalmacen']][$value['referencia']]['saldo_monto'];
@@ -717,14 +709,15 @@ class informe_analisisarticulos extends fs_controller {
         }
 
         foreach ($lista_export as $referencia => $listafecha) {
-            $lineas = 0;     
+            $lineas = 0;
+            $sumaSalidasQda[$referencia] = 0;
+            $sumaIngresosQda[$referencia] = 0;
+            if($this->valorizado){
+                $sumaSalidasMonto[$referencia] = 0;
+                $sumaIngresosMonto[$referencia] = 0;
+            }
             foreach ($listafecha as $fecha => $tipo_documentos) {
-                $sumaSalidasQda[$referencia] = 0;
-                $sumaIngresosQda[$referencia] = 0;
-                if($this->valorizado){
-                    $sumaSalidasMonto[$referencia] = 0;
-                    $sumaIngresosMonto[$referencia] = 0;
-                }
+                
                 foreach ($tipo_documentos as $tipo_documento => $documentos) {
                     foreach ($documentos as $documento => $movimiento) {
                         if ($lineas == 0) {
@@ -764,11 +757,14 @@ class informe_analisisarticulos extends fs_controller {
                         $lineas++;
                     }
                 }
+                /*
                 $this->writer->writeSheetRow(
                     $almacen->nombre, 
                     array($fecha, '', '', $referencia, K::kardex_SaldoDiario, $sumaSalidasQda[$referencia], $sumaIngresosQda[$referencia], ($saldoInicial[$referencia] + $sumaIngresosQda[$referencia] - $sumaSalidasQda[$referencia]))
                     ,$this->estilo_pie
                 );
+                 * 
+                 */
             }
             if($this->valorizado){
                 $this->writer->writeSheetRow(
