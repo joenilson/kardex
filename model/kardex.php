@@ -342,9 +342,10 @@ class kardex extends fs_model {
       //Generamos el select para la subconsulta de productos activos y que se controla su stock
       $productos = "SELECT referencia, descripcion, costemedio FROM articulos where bloqueado = false and nostock = false;";
       $lista_productos = $this->db->select($productos);
-      $resultados = array();
+      
       if ($lista_productos) {
          foreach ($lista_productos as $item) {
+            $resultados = array();
             $resultados['kardex']['referencia'] = $item['referencia'];
             $resultados['kardex']['descripcion'] = stripcslashes($item['descripcion']);
             $resultados['kardex']['salida_cantidad'] = 0;
@@ -359,13 +360,13 @@ class kardex extends fs_model {
              */
             $fechaProceso = new DateTime($this->fecha_proceso);
             $fechaAnterior = $fechaProceso->sub(new DateInterval('P1D'))->format('Y-m-d');
-            $sql_regstocks = "select referencia, descripcion, cantidad_saldo, monto_saldo
+            $sql_saldo_anterior = "select referencia, descripcion, cantidad_saldo, monto_saldo
                      FROM kardex
                      where codalmacen = '" . $almacen->codalmacen . "' AND fecha = '" . $fechaAnterior . "'
                      and referencia = '" . $item['referencia'] . "';";
-            $data = $this->db->select($sql_regstocks);
-            if ($data) {
-               foreach ($data as $linea) {
+            $data_saldo_anterior = $this->db->select($sql_saldo_anterior);
+            if ($data_saldo_anterior) {
+               foreach ($data_saldo_anterior as $linea) {
                   $resultados['kardex']['referencia'] = $item['referencia'];
                   $resultados['kardex']['descripcion'] = $item['descripcion'];
                   $resultados['kardex']['cantidad_inicial'] = $linea['cantidad_saldo'];
@@ -384,9 +385,9 @@ class kardex extends fs_model {
             and referencia = '" . $item['referencia'] . "'
             group by ac.idalbaran,l.referencia,coddivisa,tasaconv
             order by ac.idalbaran;";
-            $data = $this->db->select($sql_albaranes);
-            if ($data) {
-               foreach ($data as $linea) {
+            $data1 = $this->db->select($sql_albaranes);
+            if ($data1) {
+               foreach ($data1 as $linea) {
                   $linea['monto'] = ($linea['coddivisa']!=$this->empresa->coddivisa)?$this->euro_convert($this->divisa_convert($linea['monto'], $linea['coddivisa'], 'EUR')):$linea['monto'];
                   $resultados['kardex']['referencia'] = $item['referencia'];
                   $resultados['kardex']['descripcion'] = $item['descripcion'];
@@ -408,9 +409,9 @@ class kardex extends fs_model {
             and referencia = '" . $item['referencia'] . "'
             group by ac.idalbaran,l.referencia,coddivisa,tasaconv 
             order by ac.idalbaran;";
-            $data = $this->db->select($sql_albaranes);
-            if ($data) {
-               foreach ($data as $linea) {
+            $data2 = $this->db->select($sql_albaranes);
+            if ($data2) {
+               foreach ($data2 as $linea) {
                   $linea['monto'] = ($linea['coddivisa']!=$this->empresa->coddivisa)?$this->euro_convert($this->divisa_convert($linea['monto'], $linea['coddivisa'], 'EUR')):$linea['monto'];
                   $resultados['kardex']['referencia'] = $item['referencia'];
                   $resultados['kardex']['descripcion'] = $item['descripcion'];
@@ -433,9 +434,9 @@ class kardex extends fs_model {
             and referencia = '" . $item['referencia'] . "'
             group by fc.idfactura,referencia,coddivisa,tasaconv
             order by fc.idfactura;";
-            $data = $this->db->select($sql_facturasprov);
-            if ($data) {
-               foreach ($data as $linea) {
+            $data3 = $this->db->select($sql_facturasprov);
+            if ($data3) {
+               foreach ($data3 as $linea) {
                   $linea['monto'] = ($linea['coddivisa']!=$this->empresa->coddivisa)?$this->euro_convert($this->divisa_convert($linea['monto'], $linea['coddivisa'], 'EUR')):$linea['monto'];
                   $resultados['kardex']['referencia'] = $item['referencia'];
                   $resultados['kardex']['descripcion'] = $item['descripcion'];
@@ -457,9 +458,9 @@ class kardex extends fs_model {
                       and referencia = '" . $item['referencia'] . "'
                       group by ac.idalbaran,referencia,coddivisa,tasaconv
                       order by ac.idalbaran;";
-            $data = $this->db->select($sql_albaranes);
-            if ($data) {
-               foreach ($data as $linea) {
+            $data4 = $this->db->select($sql_albaranes);
+            if ($data4) {
+               foreach ($data4 as $linea) {
                   $linea['monto'] = ($linea['coddivisa']!=$this->empresa->coddivisa)?$this->euro_convert($this->divisa_convert($linea['monto'], $linea['coddivisa'], 'EUR')):$linea['monto'];
                   $resultados['kardex']['referencia'] = $item['referencia'];
                   $resultados['kardex']['descripcion'] = $item['descripcion'];
@@ -481,9 +482,9 @@ class kardex extends fs_model {
                       and referencia = '" . $item['referencia'] . "'
                       group by ac.idalbaran,referencia,coddivisa,tasaconv
                       order by ac.idalbaran;";
-            $data = $this->db->select($sql_albaranes);
-            if ($data) {
-               foreach ($data as $linea) {
+            $data5 = $this->db->select($sql_albaranes);
+            if ($data5) {
+               foreach ($data5 as $linea) {
                   $linea['monto'] = ($linea['coddivisa']!=$this->empresa->coddivisa)?$this->euro_convert($this->divisa_convert($linea['monto'], $linea['coddivisa'], 'EUR')):$linea['monto'];
                   $resultados['kardex']['referencia'] = $item['referencia'];
                   $resultados['kardex']['descripcion'] = $item['descripcion'];
@@ -505,9 +506,9 @@ class kardex extends fs_model {
                 and referencia = '" . $item['referencia'] . "'
                 group by fc.idfactura,referencia,coddivisa,tasaconv
                 order by fc.idfactura;";
-            $data = $this->db->select($sql_facturas);
-            if ($data) {
-               foreach ($data as $linea) {
+            $data6 = $this->db->select($sql_facturas);
+            if ($data6) {
+               foreach ($data6 as $linea) {
                   $linea['monto'] = ($linea['coddivisa']!=$this->empresa->coddivisa)?$this->euro_convert($this->divisa_convert($linea['monto'], $linea['coddivisa'], 'EUR')):$linea['monto'];
                   $resultados['kardex']['referencia'] = $item['referencia'];
                   $resultados['kardex']['descripcion'] = $item['descripcion'];
@@ -523,16 +524,16 @@ class kardex extends fs_model {
                 /*
                  * Generamos la informacion de las transferencias por ingresos entre almacenes que se hayan hecho a los stocks
                  */
-                $sql_regstocks = "select l.idtrans, referencia, sum(cantidad) as cantidad
+                $sql_transstock1 = "select l.idtrans, referencia, sum(cantidad) as cantidad
                 from lineastransstock AS ls
                 JOIN transstock as l ON(ls.idtrans = l.idtrans)
                 where codalmadestino = '" . $almacen->codalmacen . "' AND fecha = '" . $this->fecha_proceso . "'
                 and referencia = '" . $item['referencia'] . "'
                 group by l.idtrans, referencia
                 order by l.idtrans;";
-                $data = $this->db->select($sql_regstocks);
-                if ($data) {
-                   foreach ($data as $linea) {
+                $data7 = $this->db->select($sql_transstock1);
+                if ($data7) {
+                   foreach ($data7 as $linea) {
                       $resultados['kardex']['referencia'] = $item['referencia'];
                       $resultados['kardex']['descripcion'] = $item['descripcion'];
                       $resultados['kardex']['salida_cantidad'] += 0;
@@ -545,16 +546,16 @@ class kardex extends fs_model {
                 /*
                  * Generamos la informacion de las transferencias por salidas entre almacenes que se hayan hecho a los stocks
                  */
-                $sql_regstocks = "select l.idtrans, referencia, sum(cantidad) as cantidad
+                $sql_transstock2 = "select l.idtrans, referencia, sum(cantidad) as cantidad
                 from lineastransstock AS ls
                 JOIN transstock as l ON(ls.idtrans = l.idtrans)
                 where codalmaorigen = '" . $almacen->codalmacen . "' AND fecha = '" . $this->fecha_proceso . "'
                 and referencia = '" . $item['referencia'] . "'
                 group by l.idtrans, referencia
                 order by l.idtrans;";
-                $data = $this->db->select($sql_regstocks);
-                if ($data) {
-                   foreach ($data as $linea) {
+                $data8 = $this->db->select($sql_transstock2);
+                if ($data8) {
+                   foreach ($data8 as $linea) {
                       $resultados['kardex']['referencia'] = $item['referencia'];
                       $resultados['kardex']['descripcion'] = $item['descripcion'];
                       $resultados['kardex']['salida_cantidad'] += ($linea['cantidad'] >= 0) ? $linea['cantidad'] : 0;
@@ -572,12 +573,14 @@ class kardex extends fs_model {
              from lineasregstocks AS ls
              JOIN stocks as l ON(ls.idstock = l.idstock)
              where codalmacen = '" . $almacen->codalmacen . "' AND fecha = '" . $this->fecha_proceso . "'
+             and codalmacen = codalmacendest 
              and referencia = '" . $item['referencia'] . "'
              group by hora, l.idstock, referencia, motivo
              order by l.idstock;";
-            $data = $this->db->select($sql_regstocks);
-            if ($data) {
-               foreach ($data as $linea) {
+            $data9 = $this->db->select($sql_regstocks);
+            
+            if ($data9) {
+               foreach ($data9 as $linea) {
                   $resultados['kardex']['referencia'] = $item['referencia'];
                   $resultados['kardex']['descripcion'] = $item['descripcion'];
                   $resultados['kardex']['regularizacion_cantidad'] = $linea['cantidad'];

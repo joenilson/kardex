@@ -387,7 +387,7 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
             url: '{$fsc->url()}',
             data: $('#f_opciones_kardex').serialize() + '&opciones-kardex=TRUE',
             success: function (datos) {
-                alert(datos.mensaje);
+                bootbox.alert(datos.mensaje);
                 $("#modal_opciones_kardex").modal('hide');
             }
         });
