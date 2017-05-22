@@ -223,6 +223,8 @@ class kardex extends fs_model {
          ob_end_flush();
       }
 
+      $this->kardex_almacen();
+      /*
       $inicio_total = new DateTime('NOW');
       $contador = 0;
       foreach ($rango as $fecha) {
@@ -265,6 +267,8 @@ class kardex extends fs_model {
       } else {
          echo " ** Proceso de Inventario diario concluido...\n";
       }
+       * 
+       */
    }
 
    /*
@@ -272,12 +276,10 @@ class kardex extends fs_model {
     */
 
    public function kardex_almacen() {
-      if ($this->fecha_proceso) {
-         foreach ($this->almacen->all() as $almacen) {
-            $this->stock_query($almacen);
-         }
-         gc_collect_cycles();
-      }
+        foreach ($this->almacen->all() as $almacen) {
+           $this->stock_query($almacen);
+        }
+        gc_collect_cycles();
    }
 
     /**
@@ -304,7 +306,7 @@ class kardex extends fs_model {
             }
             $idlinea = \date('Y-m-d H:i:s',strtotime($linea['fecha']." ".$linea['hora']));
             if($this->valorizado){
-                $linea['monto'] = ($linea['coddivisa'] != $this->empresa->coddivisa) ? $this->euro_convert($this->divisa_convert($linea['monto'], $linea['coddivisa'], 'EUR')) : $linea['monto'];
+                $linea['monto'] = ($linea['coddivisa'] != $this->coddivisa) ? $this->euro_convert($this->divisa_convert($linea['monto'], $linea['coddivisa'], 'EUR')) : $linea['monto'];
                 if($tipo=='ingreso'){
                     $resultados[$linea['documento']]['salida_monto'] = ($linea['monto'] <= 0) ? ($linea['monto']*-1) : 0;
                     $resultados[$linea['documento']]['ingreso_monto'] = ($linea['monto'] >= 0) ? $linea['monto'] : 0;
@@ -333,7 +335,111 @@ class kardex extends fs_model {
         }
     }
 
+    /**
+     * Recalculo de saldos de stock por cada articulo almacén
+     * @param type $ref
+     * @param type $almacen
+     * @return type value
+     */
+    public function saldo_articulo($ref,$almacen,$desde)
+    {
+        $total_ingresos = 0;
+        //Facturas de compra sin albaran
+        $sql_compras1 = "SELECT sum(cantidad) as total FROM lineasfacturasprov as lfp".
+                " JOIN facturasprov as fp on (fp.idfactura = lfp.idfactura)".
+                " WHERE anulada = FALSE and idalbaran IS NULL and fecha < ".$this->var2str(\date('Y-m-d',strtotime($desde))).
+                " AND codalmacen = ".$this->var2str($almacen).
+                " AND referencia = ".$this->var2str($ref);
+        $data_Compras1 = $this->db->select($sql_compras1);
+        if($data_Compras1)
+        {
+            $total_ingresos += $data_Compras1[0]['total'];
+        }
+        
+        //Albaranes de compra
+        $sql_compras2 = "SELECT sum(cantidad) as total FROM lineasalbaranesprov as lap".
+                " JOIN albaranesprov as ap on (ap.idalbaran = lap.idalbaran)".
+                " WHERE fecha <= ".$this->var2str(\date('Y-m-d',strtotime($desde))).
+                " AND codalmacen = ".$this->var2str($almacen).
+                " AND referencia = ".$this->var2str($ref);
+        $data_Compras2 = $this->db->select($sql_compras2);
+        if($data_Compras2)
+        {
+            $total_ingresos += $data_Compras2[0]['total'];
+        }
+        
+        $total_salidas = 0;
+        //Facturas de venta sin albaran
+        $sql_ventas1 = "SELECT sum(cantidad) as total FROM lineasfacturascli as lfc".
+                " JOIN facturascli as fc on (fc.idfactura = lfc.idfactura)".
+                " WHERE anulada = FALSE and idalbaran IS NULL and fecha < ".$this->var2str(\date('Y-m-d',strtotime($desde))).
+                " AND codalmacen = ".$this->var2str($almacen).
+                " AND referencia = ".$this->var2str($ref);
+        $data_Ventas1 = $this->db->select($sql_ventas1);
+        if($data_Ventas1)
+        {
+            $total_salidas += $data_Ventas1[0]['total'];
+        }
+        
+        //Albaranes de venta
+        $sql_ventas2 = "SELECT sum(cantidad) as total FROM lineasalbaranescli as lac".
+                " JOIN albaranescli as ac on (ac.idalbaran = lac.idalbaran)".
+                " WHERE fecha < ".$this->var2str(\date('Y-m-d',strtotime($desde))).
+                " AND codalmacen = ".$this->var2str($almacen).
+                " AND referencia = ".$this->var2str($ref);
+        $data_Ventas2 = $this->db->select($sql_ventas2);
+        if($data_Ventas2)
+        {
+            $total_salidas += $data_Ventas2[0]['total'];
+        }
+        
+        //Si existen estas tablas se genera la información de las transferencias de stock
+        if ($this->db->table_exists('transstock', $this->tablas) AND $this->db->table_exists('lineastransstock', $this->tablas)) {
+            /*
+             * Generamos la informacion de las transferencias por ingresos entre almacenes que se hayan hecho a los stocks
+             */
+            $sql_transstock1 = "select sum(cantidad) as total FROM lineastransstock AS ls".
+            " JOIN transstock as l ON(ls.idtrans = l.idtrans) ".
+            " WHERE codalmadestino = ".$this->var2str($almacen). 
+            " AND fecha < ".$this->var2str(\date('Y-m-d',strtotime($desde))).
+            " AND referencia = ".$this->var2str($ref);
+            $data_transstock1 = $this->db->select($sql_transstock1);
+            if ($data_transstock1) {
+                $total_ingresos += $data_transstock1[0]['total'];
+            }
 
+            /*
+             * Generamos la informacion de las transferencias por salidas entre almacenes que se hayan hecho a los stocks
+             */
+            $sql_transstock2 = "select sum(cantidad) as total FROM lineastransstock AS ls ".
+            " JOIN transstock as l ON(ls.idtrans = l.idtrans) ".
+            " WHERE  codalmaorigen = ".$this->var2str($almacen).
+            " AND fecha < ".$this->var2str(\date('Y-m-d',strtotime($desde))).
+            " AND referencia = ".$this->var2str($ref);
+            $data_transstock2 = $this->db->select($sql_transstock2);
+            if ($data_transstock2) {
+                $total_salidas += $data_transstock2[0]['total'];
+            }
+        }
+        
+        //Si existe esta tabla se genera la información de las regularizaciones de stock y se agrega como salida el resultado
+        if ($this->db->table_exists('lineasregstocks', $this->tablas)) {
+            $sql_regstocks = "select sum(cantidadini-cantidadfin) as total from lineasregstocks AS ls ".
+            " JOIN stocks as l ON(ls.idstock = l.idstock) ".
+            " WHERE fecha < ".$this->var2str(\date('Y-m-d',strtotime($desde))).
+            " AND codalmacen = ".$this->var2str($almacen).
+            " AND referencia = ".$this->var2str($ref);
+            $data_regstocks = $this->db->select($sql_regstocks);
+            if ($data_regstocks) {
+                $cantidad = $data_regstocks[0]['total'];
+                $total_salidas += $cantidad;
+            }
+        }
+        
+        $total_saldo = $total_ingresos - $total_salidas;
+        return $total_saldo;
+    }
+    
    /*
     * Esta es la consulta multiple que utilizamos para sacar la información
     * de todos los articulos tanto ingresos como salidas
@@ -388,7 +494,7 @@ class kardex extends fs_model {
             $data1 = $this->db->select($sql_albaranes);
             if ($data1) {
                foreach ($data1 as $linea) {
-                  $linea['monto'] = ($linea['coddivisa']!=$this->empresa->coddivisa)?$this->euro_convert($this->divisa_convert($linea['monto'], $linea['coddivisa'], 'EUR')):$linea['monto'];
+                  $linea['monto'] = ($linea['coddivisa']!=$this->coddivisa)?$this->euro_convert($this->divisa_convert($linea['monto'], $linea['coddivisa'], 'EUR')):$linea['monto'];
                   $resultados['kardex']['referencia'] = $item['referencia'];
                   $resultados['kardex']['descripcion'] = $item['descripcion'];
                   $resultados['kardex']['salida_cantidad'] += ($linea['cantidad'] <= 0) ? ($linea['cantidad'] * -1) : 0;
@@ -412,7 +518,7 @@ class kardex extends fs_model {
             $data2 = $this->db->select($sql_albaranes);
             if ($data2) {
                foreach ($data2 as $linea) {
-                  $linea['monto'] = ($linea['coddivisa']!=$this->empresa->coddivisa)?$this->euro_convert($this->divisa_convert($linea['monto'], $linea['coddivisa'], 'EUR')):$linea['monto'];
+                  $linea['monto'] = ($linea['coddivisa']!=$this->coddivisa)?$this->euro_convert($this->divisa_convert($linea['monto'], $linea['coddivisa'], 'EUR')):$linea['monto'];
                   $resultados['kardex']['referencia'] = $item['referencia'];
                   $resultados['kardex']['descripcion'] = $item['descripcion'];
                   $resultados['kardex']['salida_cantidad'] += ($linea['cantidad'] <= 0) ? ($linea['cantidad'] * -1) : 0;
@@ -437,7 +543,7 @@ class kardex extends fs_model {
             $data3 = $this->db->select($sql_facturasprov);
             if ($data3) {
                foreach ($data3 as $linea) {
-                  $linea['monto'] = ($linea['coddivisa']!=$this->empresa->coddivisa)?$this->euro_convert($this->divisa_convert($linea['monto'], $linea['coddivisa'], 'EUR')):$linea['monto'];
+                  $linea['monto'] = ($linea['coddivisa']!=$this->coddivisa)?$this->euro_convert($this->divisa_convert($linea['monto'], $linea['coddivisa'], 'EUR')):$linea['monto'];
                   $resultados['kardex']['referencia'] = $item['referencia'];
                   $resultados['kardex']['descripcion'] = $item['descripcion'];
                   $resultados['kardex']['salida_cantidad'] += ($linea['cantidad'] <= 0) ? ($linea['cantidad'] * -1) : 0;
@@ -461,7 +567,7 @@ class kardex extends fs_model {
             $data4 = $this->db->select($sql_albaranes);
             if ($data4) {
                foreach ($data4 as $linea) {
-                  $linea['monto'] = ($linea['coddivisa']!=$this->empresa->coddivisa)?$this->euro_convert($this->divisa_convert($linea['monto'], $linea['coddivisa'], 'EUR')):$linea['monto'];
+                  $linea['monto'] = ($linea['coddivisa']!=$this->coddivisa)?$this->euro_convert($this->divisa_convert($linea['monto'], $linea['coddivisa'], 'EUR')):$linea['monto'];
                   $resultados['kardex']['referencia'] = $item['referencia'];
                   $resultados['kardex']['descripcion'] = $item['descripcion'];
                   $resultados['kardex']['salida_cantidad'] += ($linea['cantidad'] >= 0) ? $linea['cantidad'] : 0;
@@ -486,7 +592,7 @@ class kardex extends fs_model {
             $data5 = $this->db->select($sql_albaranes);
             if ($data5) {
                foreach ($data5 as $linea) {
-                  $linea['monto'] = ($linea['coddivisa']!=$this->empresa->coddivisa)?$this->euro_convert($this->divisa_convert($linea['monto'], $linea['coddivisa'], 'EUR')):$linea['monto'];
+                  $linea['monto'] = ($linea['coddivisa']!=$this->coddivisa)?$this->euro_convert($this->divisa_convert($linea['monto'], $linea['coddivisa'], 'EUR')):$linea['monto'];
                   $resultados['kardex']['referencia'] = $item['referencia'];
                   $resultados['kardex']['descripcion'] = $item['descripcion'];
                   $resultados['kardex']['salida_cantidad'] += ($linea['cantidad'] >= 0) ? $linea['cantidad'] : 0;
@@ -510,7 +616,7 @@ class kardex extends fs_model {
             $data6 = $this->db->select($sql_facturas);
             if ($data6) {
                foreach ($data6 as $linea) {
-                  $linea['monto'] = ($linea['coddivisa']!=$this->empresa->coddivisa)?$this->euro_convert($this->divisa_convert($linea['monto'], $linea['coddivisa'], 'EUR')):$linea['monto'];
+                  $linea['monto'] = ($linea['coddivisa']!=$this->coddivisa)?$this->euro_convert($this->divisa_convert($linea['monto'], $linea['coddivisa'], 'EUR')):$linea['monto'];
                   $resultados['kardex']['referencia'] = $item['referencia'];
                   $resultados['kardex']['descripcion'] = $item['descripcion'];
                   $resultados['kardex']['salida_cantidad'] += ($linea['cantidad'] >= 0) ? $linea['cantidad'] : 0;
@@ -698,25 +804,25 @@ class kardex extends fs_model {
 
    public function euro_convert($precio, $coddivisa = NULL, $tasaconv = NULL)
    {
-      if($this->empresa->coddivisa == 'EUR')
+      if($this->coddivisa == 'EUR')
       {
          return $precio;
       }
       else if($coddivisa AND $tasaconv)
       {
-         if($this->empresa->coddivisa == $coddivisa)
+         if($this->coddivisa == $coddivisa)
          {
             return $precio * $tasaconv;
          }
          else
          {
             $original = $precio * $tasaconv;
-            return $this->divisa_convert($original, $coddivisa, $this->empresa->coddivisa);
+            return $this->divisa_convert($original, $coddivisa, $this->coddivisa);
          }
       }
       else
       {
-         return $this->divisa_convert($precio, 'EUR', $this->empresa->coddivisa);
+         return $this->divisa_convert($precio, 'EUR', $this->coddivisa);
       }
    }
 
