@@ -621,7 +621,7 @@ class informe_analisisarticulos extends fs_controller {
         /*
          * Generamos la informacion de las regularizaciones que se hayan hecho a los stocks
          */
-        $sql_regstocks = "select codalmacen, fecha, hora, l.idstock as documento, a.referencia, motivo, sum(cantidadfin) as cantidad, descripcion, costemedio
+        $sql_regstocks = "select codalmacen, fecha, hora, l.idstock as documento, a.referencia, motivo, sum(cantidadini-cantidadfin) as cantidad, descripcion, costemedio
         from lineasregstocks AS ls
         JOIN stocks as l ON(ls.idstock = l.idstock)
         JOIN articulos as a ON(a.referencia = l.referencia)
@@ -652,12 +652,12 @@ class informe_analisisarticulos extends fs_controller {
                 $resultados[$linea['documento']]['documento'] = $linea['documento'];
                 $resultados[$linea['documento']]['referencia'] = $linea['referencia'];
                 $resultados[$linea['documento']]['descripcion'] = $linea['referencia'].' - '.$linea['descripcion'];
-                $resultados[$linea['documento']]['regularizacion_cantidad'] = $linea['cantidad'];
-                $resultados[$linea['documento']]['salida_cantidad'] = 0;
+                //$resultados[$linea['documento']]['regularizacion_cantidad'] = $linea['cantidad'];
+                $resultados[$linea['documento']]['salida_cantidad'] = $linea['cantidad'];
                 $resultados[$linea['documento']]['ingreso_cantidad'] = 0;
                 if($this->valorizado){
-                    $resultados[$linea['documento']]['regularizacion_monto'] = $linea['costemedio'] * $linea['cantidad'];
-                    $resultados[$linea['documento']]['salida_monto'] = 0;
+                    //$resultados[$linea['documento']]['regularizacion_monto'] = $linea['costemedio'] * $linea['cantidad'];
+                    $resultados[$linea['documento']]['salida_monto'] = $linea['costemedio'] * $linea['cantidad'];
                     $resultados[$linea['documento']]['ingreso_monto'] = 0;
                 }
                 $this->lista[$idlinea][] = $resultados[$linea['documento']];
@@ -711,9 +711,10 @@ class informe_analisisarticulos extends fs_controller {
                 $linea_resultado = $value;
                 $linea_resultado['saldo_cantidad'] = ($value['tipo_documento'] == K::kardex_SaldoInicial) ? $value['saldo_cantidad'] : $resumen[$value['codalmacen']][$value['referencia']]['saldo_cantidad'];
                 
+                /*
                 //Corregimos si hay una regularización de Stock
                 if(isset($value['regularizacion_cantidad'])){
-                    $cantidadRegularizacion = $linea_resultado['saldo_cantidad']-$value['regularizacion_cantidad'];
+                    $cantidadRegularizacion = $value['regularizacion_cantidad'];
                     $value['ingreso_cantidad'] = 0;
                     $value['salida_cantidad'] = $cantidadRegularizacion;
                     //Si hubo una regularización actualizamos los valores de la linea
@@ -721,12 +722,12 @@ class informe_analisisarticulos extends fs_controller {
                     $resumen[$value['codalmacen']][$value['referencia']]['saldo_cantidad'] += ($saldoCantidadInicial + ($value['ingreso_cantidad'] - $value['salida_cantidad']));
                     $linea_resultado['saldo_cantidad'] = ($value['tipo_documento'] == K::kardex_SaldoInicial) ? $value['saldo_cantidad'] : $resumen[$value['codalmacen']][$value['referencia']]['saldo_cantidad'];
                 }
-                
+                */
                 if($this->valorizado){
                     $saldoMontoInicial = ($value['tipo_documento'] == 'Saldo Inicial') ? $value['saldo_monto'] : 0;
                     $resumen[$value['codalmacen']][$value['referencia']]['saldo_monto'] += ($saldoMontoInicial + ($value['ingreso_monto'] - $value['salida_monto']));
                     $linea_resultado['saldo_monto'] = ($value['tipo_documento'] == K::kardex_SaldoInicial) ? $value['saldo_monto'] : $resumen[$value['codalmacen']][$value['referencia']]['saldo_monto'];
-                    
+                    /*
                     if(isset($value['regularizacion_monto'])){
                         $montoRegularizacion = $linea_resultado['saldo_monto']-$value['regularizacion_monto'];
                         $linea_resultado['ingreso_monto'] = 0;
@@ -734,6 +735,8 @@ class informe_analisisarticulos extends fs_controller {
                         $resumen[$value['codalmacen']][$value['referencia']]['saldo_monto'] += ($saldoCantidadInicial + ($value['ingreso_monto'] - $value['salida_monto']));
                         $linea_resultado['saldo_monto'] = ($value['tipo_documento'] == K::kardex_SaldoInicial) ? $value['saldo_monto'] : $resumen[$value['codalmacen']][$value['referencia']]['saldo_monto'];
                     }
+                     * 
+                     */
                     $lista_export[$value['referencia']][$value['fecha']][$value['tipo_documento']][$value['documento']]['ingreso_monto'] += $value['ingreso_monto'];
                     $lista_export[$value['referencia']][$value['fecha']][$value['tipo_documento']][$value['documento']]['salida_monto'] += $value['salida_monto'];
                     $lista_export[$value['referencia']][$value['fecha']][$value['tipo_documento']][$value['documento']]['saldo_monto'] = $linea_resultado['saldo_monto'];
