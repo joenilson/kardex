@@ -65,12 +65,6 @@ class informe_analisisarticulos extends fs_controller {
     public $kardex;
     public $mostrar;
     public $valorizado;
-    public $kardex_setup;
-    public $kardex_ultimo_proceso;
-    public $kardex_procesandose;
-    public $kardex_usuario_procesando;
-    public $kardex_programado;
-    public $loop_horas;
     public $tablas;
     public function __construct() {
         parent::__construct(__CLASS__, "Kardex", 'informes', FALSE, TRUE);
@@ -112,7 +106,7 @@ class informe_analisisarticulos extends fs_controller {
         for ($x = 0; $x < 25; $x++) {
             $this->loop_horas[] = str_pad($x, 2, "0", STR_PAD_LEFT);
         }
-
+        /*
         $cancelar_kardex = \filter_input(INPUT_GET, 'cancelar_kardex');
         if (!empty($cancelar_kardex)) {
             $fsvar->array_save(array(
@@ -120,7 +114,13 @@ class informe_analisisarticulos extends fs_controller {
                 'kardex_usuario_procesando' => ''
             ));
         }
-        
+        */
+        $fsvar->delete('kardex_ultimo_proceso');
+        $fsvar->delete('kardex_cron');
+        $fsvar->delete('kardex_programado');
+        $fsvar->delete('kardex_procesandose');
+        $fsvar->delete('kardex_usuario_procesando');
+        /*
         $this->kardex_setup = $fsvar->array_get(
             array(
                 'kardex_ultimo_proceso' => '',
@@ -137,7 +137,7 @@ class informe_analisisarticulos extends fs_controller {
         $this->kardex_usuario_procesando = ($this->kardex_setup['kardex_usuario_procesando']) ? $this->kardex_setup['kardex_usuario_procesando'] : FALSE;
         $this->kardex_cron = $this->kardex_setup['kardex_cron'];
         $this->kardex_programado = $this->kardex_setup['kardex_programado'];
-        
+        */
         $procesar_reporte = \filter_input(INPUT_POST, 'procesar-reporte');
         if (!empty($procesar_reporte)) {
             $inicio = \date('Y-m-d', strtotime(\filter_input(INPUT_POST, 'inicio')));
@@ -157,7 +157,7 @@ class informe_analisisarticulos extends fs_controller {
             $this->articulo = ($articulo != 'null') ? $this->comma_separated_to_array($articulo) : NULL;
             $this->kardex_almacen();
         }
-
+        /*
         $kardex = \filter_input(INPUT_GET, 'procesar-kardex');
         if (!empty($kardex)) {
             $kardex_inicio = \filter_input(INPUT_GET, 'kardex_inicio');
@@ -171,7 +171,8 @@ class informe_analisisarticulos extends fs_controller {
             header('Content-Type: application/json');
             $k->procesar_kardex($this->user->nick);
         }
-
+        */
+        /*
         $opciones_kardex = \filter_input(INPUT_POST, 'opciones-kardex');
         if (!empty($opciones_kardex)) {
             $data = array();
@@ -194,6 +195,8 @@ class informe_analisisarticulos extends fs_controller {
             header('Content-Type: application/json');
             echo json_encode($data);
         }
+         * 
+         */
         
         $type = \filter_input(INPUT_GET, 'type');
         if($type=='buscar-articulos'){
@@ -711,8 +714,8 @@ class informe_analisisarticulos extends fs_controller {
                 //Corregimos si hay una regularización de Stock
                 if(isset($value['regularizacion_cantidad'])){
                     $cantidadRegularizacion = $linea_resultado['saldo_cantidad']-$value['regularizacion_cantidad'];
-                    $value['ingreso_cantidad'] = ($cantidadRegularizacion < 0)?$cantidadRegularizacion*-1:0;
-                    $value['salida_cantidad'] = ($cantidadRegularizacion > 0)?($cantidadRegularizacion):0;
+                    $value['ingreso_cantidad'] = 0;
+                    $value['salida_cantidad'] = $cantidadRegularizacion;
                     //Si hubo una regularización actualizamos los valores de la linea
                     $linea_resultado = $value;
                     $resumen[$value['codalmacen']][$value['referencia']]['saldo_cantidad'] += ($saldoCantidadInicial + ($value['ingreso_cantidad'] - $value['salida_cantidad']));
@@ -726,10 +729,10 @@ class informe_analisisarticulos extends fs_controller {
                     
                     if(isset($value['regularizacion_monto'])){
                         $montoRegularizacion = $linea_resultado['saldo_monto']-$value['regularizacion_monto'];
-                        $linea_resultado['ingreso_monto'] = ($montoRegularizacion > 0)?$montoRegularizacion:0;
-                        $linea_resultado['salida_monto'] = ($montoRegularizacion < 0)?($montoRegularizacion*-1):0;
+                        $linea_resultado['ingreso_monto'] = 0;
+                        $linea_resultado['salida_monto'] = $montoRegularizacion;
                         $resumen[$value['codalmacen']][$value['referencia']]['saldo_monto'] += ($saldoCantidadInicial + ($value['ingreso_monto'] - $value['salida_monto']));
-                        $linea_resultado['saldo_monto'] = ($value['tipo_documento'] == 'Saldo Inicial') ? $value['saldo_monto'] : $resumen[$value['codalmacen']][$value['referencia']]['saldo_monto'];
+                        $linea_resultado['saldo_monto'] = ($value['tipo_documento'] == K::kardex_SaldoInicial) ? $value['saldo_monto'] : $resumen[$value['codalmacen']][$value['referencia']]['saldo_monto'];
                     }
                     $lista_export[$value['referencia']][$value['fecha']][$value['tipo_documento']][$value['documento']]['ingreso_monto'] += $value['ingreso_monto'];
                     $lista_export[$value['referencia']][$value['fecha']][$value['tipo_documento']][$value['documento']]['salida_monto'] += $value['salida_monto'];

@@ -40,26 +40,11 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
                 {/if}
             </div>
             <div class="btn-group">
-                {if="!$fsc->kardex_procesandose"}
-                <a href="#" class="btn btn-default btn-sm hidden" id="b_kardex" name="kardex">
-                    <span class='glyphicon glyphicon-equalizer'></span>
-                    <span class="hidden-xs">&nbsp;{function="L::kardex_CalcularInventarioDiario"}</span>
-                </a>
-                {/if}
-                {if="!$fsc->kardex_procesandose"}
                 <a href="#" class="btn btn-default btn-sm" id="b_opciones_kardex" name="opciones_kardex">
                     <span class='glyphicon glyphicon-cog'></span>
                     <span class="hidden-xs">&nbsp;{function="L::kardex_OpcionesCalculo"}</span>
                 </a>
-                {/if}
             </div>
-        </div>
-        <div class="col-sm-3 text-center text-warning hidden">
-            {if="$fsc->kardex_ultimo_proceso"}
-            <small>
-                <b>{function="L::kardex_UltimaFechaProcesada"}:</b> {$fsc->kardex_ultimo_proceso}
-            </small>
-            {/if}
         </div>
         <div class="col-sm-6 text-right">
             <h2 style="margin-top: 0px;">
@@ -72,20 +57,6 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
             <p class='help-block'>
                 {function="L::kardex_BloqueAyuda"}
             </p>
-        </div>
-    </div>
-    <div class="row">
-        <div class="col-sm-12">
-            {if="$fsc->kardex_procesandose"}
-            <div class="alert alert-warning">
-                {function="L::kardex_BloqueAyudaCalculoEjecutandose('{$fsc->kardex_usuario_procesando}')"}
-            </div>
-            {/if}
-            {if="$fsc->kardex_ultimo_proceso==''"}
-            <div class="alert alert-warning">
-                {function="L::kardex_BloqueAyudaInventarioVacio"}
-            </div>
-            {/if}
         </div>
     </div>
     <form id="f_generar_reporte" method="post" action='{$fsc->url()}'>
@@ -343,45 +314,6 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
 
     function last_stock(val, name, record) {
         return parseFloat(record[name] || 0);
-    }
-
-    function execute_kardex() {
-        var kardex_inicio = $('#kardex_inicio').val();
-        var kardex_fin = $('#kardex_fin').val();
-        if (!window.XMLHttpRequest) {
-            alert("Tu navegador no soporta tecnología XMLHttpRequest.");
-            return;
-        }
-        try {
-            var xhr = new XMLHttpRequest();
-            xhr.previous_text = '';
-            xhr.onerror = function () {
-                alert("Ocurrió un error inesperado en la llamada [XHR].");
-            };
-            xhr.onreadystatechange = function () {
-                try {
-                    if (xhr.readyState === 4) {
-                        alert('{function="L::kardex_AlertaCompleto"}');
-                        $('#modal_proceso_kardex').modal('hide');
-                        window.location.assign("{$fsc->url()}");
-                    } else if (xhr.readyState > 2) {
-                        var new_response = xhr.responseText.substring(xhr.previous_text.length);
-                        var result = JSON.parse(new_response);
-                        $('#modal_proceso_kardex').modal('show');
-                        document.getElementById("divProgress").innerHTML = result.message;
-                        document.getElementById("progressor").innerHTML = result.progress + "%";
-                        document.getElementById('progressor').style.width = result.progress + "%";
-                        xhr.previous_text = xhr.responseText;
-                    }
-                } catch (e) {
-                    alert("[XHR STATECHANGE] Exception: " + e);
-                }
-            };
-            xhr.open('GET', '{$fsc->url()}&procesar-kardex=TRUE&kardex_inicio=' + kardex_inicio + '&kardex_fin=' + kardex_fin, true);
-            xhr.send();
-        } catch (e) {
-            alert("[XHR REQUEST] Exception: " + e);
-        }
     }
 
     function set_options() {
