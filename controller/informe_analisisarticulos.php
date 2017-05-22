@@ -502,7 +502,7 @@ class informe_analisisarticulos extends fs_controller {
         from albaranescli as ac
         join lineasalbaranescli as l ON (ac.idalbaran=l.idalbaran)
         where codalmacen = '" . stripcslashes(strip_tags(trim($almacen->codalmacen))) . "' AND fecha between '" . $this->fecha_inicio . "' and '" . $this->fecha_fin . "'
-        and idfactura is not null
+        and idfactura is not null and dtopor != 100 
         and l.referencia in ($productos)
         group by codalmacen,ac.fecha,ac.hora,ac.codigo,ac.idalbaran,referencia,descripcion,coddivisa,tasaconv
         order by codalmacen,referencia,fecha,hora;";
