@@ -91,7 +91,10 @@ class kardex extends fs_model {
          'kardex_procesandose' => 'FALSE',
          'kardex_usuario_procesando' => ''
       ));
-      $fsvar->array_save($config);
+      //$fsvar->array_save($config);
+      $fsvar->delete('kardex_ultimo_proceso');
+      $fsvar->delete('kardex_procesandose');
+      $fsvar->delete('kardex_usuario_procesando');
    }
 
    public function exists() {
@@ -157,10 +160,11 @@ class kardex extends fs_model {
       return '';
    }
 
-   /*
+   /**
     * Este cron generará los saldos de almacen por día
     * Para que cuando soliciten el movimiento por almacen por
     * articulo se pueda extraer de aquí en forma de resumen histórico
+    * @deprecated since version 33
     */
 
    public function cron_job() {
@@ -217,12 +221,13 @@ class kardex extends fs_model {
       $intervalo = date_diff(date_create($this->fecha_inicio), date_create($this->fecha_fin));
       $dias_proceso = $intervalo->format('%a') + 1;
       $rango = $this->rango_fechas();
-
+      /**
+       * @deprecated since version 33
       if (!$this->cron) {
          ob_implicit_flush(true);
          ob_end_flush();
       }
-
+      */
       $this->kardex_almacen();
       /*
       $inicio_total = new DateTime('NOW');
@@ -359,7 +364,7 @@ class kardex extends fs_model {
         //Albaranes de compra
         $sql_compras2 = "SELECT sum(cantidad) as total FROM lineasalbaranesprov as lap".
                 " JOIN albaranesprov as ap on (ap.idalbaran = lap.idalbaran)".
-                " WHERE fecha <= ".$this->var2str(\date('Y-m-d',strtotime($desde))).
+                " WHERE fecha < ".$this->var2str(\date('Y-m-d',strtotime($desde))).
                 " AND codalmacen = ".$this->var2str($almacen).
                 " AND referencia = ".$this->var2str($ref);
         $data_Compras2 = $this->db->select($sql_compras2);
@@ -744,6 +749,7 @@ class kardex extends fs_model {
       $sql_regstocks = "select referencia, descripcion, cantidad_saldo, monto_saldo
              FROM kardex
              where codalmacen = '" .$almacen. "' AND fecha = '" .$fechaAnterior. "' $articulos;";
+      echo $fechaAnterior;
       $data = $this->db->select($sql_regstocks);
       if ($data) {
          foreach ($data as $linea) {
