@@ -182,8 +182,8 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
                     </p>
                     <hr/>
                     <div class="form-group">
-                        <label class="control-label col-sm-6 pull-left" for='kardex_valorizacion'><b>{function="L::kardex_OpcionesValorizacion"}:</b></label>
-                        <select class="control-label selectpicker col-xs-2" name='kardex_valorizacion' style="width: 20px;">
+                        <label class="control-label col-sm-4 pull-left" for='kardex_valorizacion'><b>{function="L::kardex_OpcionesValorizacion"}:</b></label>
+                        <select class="control-label selectpicker col-sm-8" name='kardex_valorizacion'>
                             <option value="promedio" {if="$fsc->kardex_valorizacion == 'promedio'"}selected{/if}>{function="L::kardex_OpcionesValorizacionPromedio"}</option>
                             <option value="ueps" {if="$fsc->kardex_valorizacion == 'ueps'"}selected{/if}>{function="L::kardex_OpcionesValorizacionUEPS"}</option>
                             <option value="peps" {if="$fsc->kardex_valorizacion == 'peps'"}selected{/if}>{function="L::kardex_OpcionesValorizacionPEPS"}</option>
