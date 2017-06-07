@@ -87,11 +87,9 @@ class kardex extends fs_model {
    public function install() {
       $fsvar = new fs_var();
       $config = $fsvar->array_get(array(
-         'kardex_ultimo_proceso' => '',
-         'kardex_procesandose' => 'FALSE',
-         'kardex_usuario_procesando' => ''
+         'kardex_valorizacion' => 'promedio',
       ));
-      //$fsvar->array_save($config);
+      $fsvar->array_save($config);
       $fsvar->delete('kardex_ultimo_proceso');
       $fsvar->delete('kardex_procesandose');
       $fsvar->delete('kardex_usuario_procesando');
@@ -229,51 +227,6 @@ class kardex extends fs_model {
       }
       */
       $this->kardex_almacen();
-      /*
-      $inicio_total = new DateTime('NOW');
-      $contador = 0;
-      foreach ($rango as $fecha) {
-         $inicio_paso = new DateTime('NOW');
-         sleep(1);
-         $plural = ($contador == 0) ? "" : "s";
-         $p = ceil((($contador + 1) * 100) / $dias_proceso);
-         $this->fecha_proceso = $fecha->format('Y-m-d');
-         //Bloqueamos el intento de procesar el Kardex por varios usuarios al mismo tiempo
-         $fsvar->array_save(
-                 array(
-                    'kardex_ultimo_proceso' => $this->fecha_proceso,
-                    'kardex_procesandose' => 'TRUE',
-                    'kardex_usuario_procesando' => ($usuario) ? $usuario : 'cron'
-                 )
-         );
-         $this->kardex_almacen();
-         if (!$this->cron) {
-            $fin_paso = $inicio_paso->diff(new DateTime('NOW'));
-            $tiempo_proceso = $inicio_total->diff(new DateTime('NOW'));
-            $time = $fin_paso->h . ':' . $fin_paso->i . ':' . $fin_paso->s;
-            $tiempo_en_segundos = strtotime("1970-01-01 $time UTC");
-            $tiempo_estimado = gmdate("H:i:s", ($dias_proceso * $tiempo_en_segundos));
-            $response = array('message' => K::kardex_Procesando.' <b>' . $fecha->format("Y-m-d") . '</b>, ' . ($contador + 1) . ' '.K::kardex_DiaText . $plural ." ".K::kardex_de.' <b>' . $dias_proceso . '</b> '.K::kardex_Procesado . $plural . ' '.K::kardex_EnText.' ' . $tiempo_proceso->format('%H:%I:%S') . ', '.K::kardex_aLasText.': ' . date("h:i:s", time()) .' '. K::kardex_TiempoEstimado.': <b>' . $tiempo_estimado . '</b>',
-               'progress' => $p);
-            echo json_encode($response);
-         }
-         $contador++;
-      }
-      sleep(1);
-      $fsvar->array_save(array(
-         'kardex_ultimo_proceso' => $this->fecha_proceso,
-         'kardex_procesandose' => 'FALSE',
-         'kardex_usuario_procesando' => ''
-      ));
-      if (!$this->cron) {
-         $response = array('message' => '<b>¡'.K::kardex_AlertaCompleto.' '.K::kardex_EnText . $tiempo_proceso->format('%H:%I:%S') . '!<b>',
-            'progress' => 100);
-         echo json_encode($response);
-      } else {
-         echo " ** Proceso de Inventario diario concluido...\n";
-      }
-       * 
-       */
    }
 
    /*

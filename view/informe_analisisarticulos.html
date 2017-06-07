@@ -168,53 +168,6 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
     </div>
 </div>
 
-<div class="modal" id="modal_proceso_kardex">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-body" id='modal_proceso_kardex_body'>
-                <div id="divProgress" class="text-left"></div>
-                <div class="progress progress-popup">
-                    <div class="progress-bar progress-bar-striped active" id="progressor"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="modal_calcular_kardex">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-                <h4 class="modal-title">{function="L::kardex_EjecutarCalculodeInventarioDiario"}</h4>
-            </div>
-            <div class="modal-body bg-info">
-                <p align="justify">
-                    {function="L::kardex_BloqueAyudaEjecutarCalculo"}: <b>{$fsc->kardex_ultimo_proceso}</b>.
-                </p>
-                <hr/>
-                <div class="row">
-                    <div class="col-sm-12">
-                        <div class="form-group col-xs-6 col-md-6">
-                            <label for='kardex_inicio' class="control-label"><b>{function="L::kardex_FechaInicio"}</b> ({function="L::kardex_opcional"})</label>
-                            <input type="text" class="form-control datepicker" name='kardex_inicio' id="kardex_inicio">
-                        </div>
-                        <div class="form-group col-xs-6 col-md-6">
-                            <label for='kardex_fin'><b>{function="L::kardex_FechaFin"}</b> ({function="L::kardex_opcional"})</label>
-                            <input type="text" class="form-control datepicker" name="kardex_fin" id="kardex_fin">
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" id="b_calcular_kardex" data-disable="true" class="btn btn-sm btn-warning">
-                    <span class='glyphicon glyphicon-equalizer'></span>&nbsp;{function="L::kardex_Calcular"}
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <div class="modal fade" id="modal_opciones_kardex">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -228,30 +181,12 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
                         {function="L::kardex_BloqueAyudaOpcionesCalculo"}:
                     </p>
                     <hr/>
-                    <div class="row">
-                        <div class="col-sm-6">
-                            <label class="control-label"><b>¿{function="L::kardex_OpcionesCalculoEjecutaAutomatico"}?</b></label>
-                        </div>
-                        <div class="col-sm-6">
-                            <div class="form-group" id="kardex_cron_ops">
-                                <label class="control-label">
-                                    <input type="radio" name='kardex_cron' value='TRUE'{if="$fsc->kardex_cron"} checked=''{/if}>
-                                    {function="L::kardex_SiText"}
-                                </label>
-                                &nbsp;
-                                <label class="control-label">
-                                    <input type="radio" name='kardex_cron' value=''{if="!$fsc->kardex_cron"} checked=''{/if}>
-                                    {function="L::kardex_NoText"}
-                                </label>
-                            </div>
-                        </div>
-                    </div>
                     <div class="form-group">
-                        <label class="control-label col-sm-6 pull-left" for='kardex_programado'><b>{function="L::kardex_OpcionesCalculoHoraEjecucion"}:</b></label>
-                        <select class="control-label selectpicker col-xs-2" name='kardex_programado' style="width: 20px;">
-                            {loop="$fsc->loop_horas"}
-                            <option value="{$value}" {if="$fsc->kardex_programado == $value"}selected{/if}>{$value}</option>
-                            {/loop}
+                        <label class="control-label col-sm-6 pull-left" for='kardex_valorizacion'><b>{function="L::kardex_OpcionesValorizacion"}:</b></label>
+                        <select class="control-label selectpicker col-xs-2" name='kardex_valorizacion' style="width: 20px;">
+                            <option value="promedio" {if="$fsc->kardex_valorizacion == 'promedio'"}selected{/if}>{function="L::kardex_OpcionesValorizacionPromedio"}</option>
+                            <option value="ueps" {if="$fsc->kardex_valorizacion == 'ueps'"}selected{/if}>{function="L::kardex_OpcionesValorizacionUEPS"}</option>
+                            <option value="peps" {if="$fsc->kardex_valorizacion == 'peps'"}selected{/if}>{function="L::kardex_OpcionesValorizacionPEPS"}</option>
                         </select>
                     </div>
                 </div>

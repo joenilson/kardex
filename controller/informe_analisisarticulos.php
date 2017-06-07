@@ -63,6 +63,7 @@ class informe_analisisarticulos extends fs_controller {
     public $publicPath;
     public $writer;
     public $kardex;
+    public $kardex_valorizacion;
     public $mostrar;
     public $valorizado;
     public $tablas;
@@ -101,11 +102,6 @@ class informe_analisisarticulos extends fs_controller {
         if (!is_dir($this->kardexDir)) {
             mkdir($this->kardexDir);
         }
-       
-        //Creamos un array para el selector de horas para cron
-        for ($x = 0; $x < 25; $x++) {
-            $this->loop_horas[] = str_pad($x, 2, "0", STR_PAD_LEFT);
-        }
         /*
         $cancelar_kardex = \filter_input(INPUT_GET, 'cancelar_kardex');
         if (!empty($cancelar_kardex)) {
@@ -120,6 +116,11 @@ class informe_analisisarticulos extends fs_controller {
         $fsvar->delete('kardex_programado');
         $fsvar->delete('kardex_procesandose');
         $fsvar->delete('kardex_usuario_procesando');
+        $this->kardex_setup = $fsvar->array_get(
+            array(
+                'kardex_valorizacion' => 'promedio',
+            ), FALSE
+        );
         /*
         $this->kardex_setup = $fsvar->array_get(
             array(
@@ -138,6 +139,7 @@ class informe_analisisarticulos extends fs_controller {
         $this->kardex_cron = $this->kardex_setup['kardex_cron'];
         $this->kardex_programado = $this->kardex_setup['kardex_programado'];
         */
+        $this->kardex_valorizacion = $this->kardex_setup['kardex_valorizacion'];
         $procesar_reporte = \filter_input(INPUT_POST, 'procesar-reporte');
         if (!empty($procesar_reporte)) {
             $inicio = \date('Y-m-d', strtotime(\filter_input(INPUT_POST, 'inicio')));
@@ -172,17 +174,14 @@ class informe_analisisarticulos extends fs_controller {
             $k->procesar_kardex($this->user->nick);
         }
         */
-        /*
+
         $opciones_kardex = \filter_input(INPUT_POST, 'opciones-kardex');
         if (!empty($opciones_kardex)) {
             $data = array();
-            $op_kardex_cron = \filter_input(INPUT_POST, 'kardex_cron');
-            $op_kardex_programado = \filter_input(INPUT_POST, 'kardex_programado');
-            $kardex_cron = ($op_kardex_cron == 'TRUE') ? "TRUE" : "FALSE";
-            $kardex_programado = $op_kardex_programado;
+            $op_kardex_valorizacion = \filter_input(INPUT_POST, 'kardex_valorizacion');
+            $kardex_valorizacion = ($op_kardex_valorizacion)?$op_kardex_valorizacion:$this->kardex_valorizacion;
             $kardex_config = array(
-                'kardex_cron' => $kardex_cron,
-                'kardex_programado' => $kardex_programado
+                'kardex_valorizacion' => $kardex_valorizacion
             );
             if ($fsvar->array_save($kardex_config)) {
                 $data['success'] = true;
@@ -195,8 +194,6 @@ class informe_analisisarticulos extends fs_controller {
             header('Content-Type: application/json');
             echo json_encode($data);
         }
-         * 
-         */
         
         $type = \filter_input(INPUT_GET, 'type');
         if($type=='buscar-articulos'){
