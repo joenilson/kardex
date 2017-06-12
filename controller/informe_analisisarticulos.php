@@ -387,12 +387,12 @@ class informe_analisisarticulos extends fs_controller {
             $resultados[$linea['documento']]['descripcion'] = $linea['referencia'].' - '.stripcslashes($linea['descripcion']);
             if($tipo=='ingreso'){
                 $resultados[$linea['documento']]['salida_cantidad'] = 0;
-                $resultados[$linea['documento']]['ingreso_cantidad'] = $linea['cantidad'];
+                $resultados[$linea['documento']]['ingreso_cantidad'] = $linea['cantidad_total'];
             }elseif($tipo=='salida'){
-                $resultados[$linea['documento']]['salida_cantidad'] = $linea['cantidad'];
+                $resultados[$linea['documento']]['salida_cantidad'] = $linea['cantidad_total'];
                 $resultados[$linea['documento']]['ingreso_cantidad'] = 0;
             }elseif($tipo=='salida_no_facturada'){
-                $resultados[$linea['documento']]['salida_cantidad'] = $linea['cantidad'];
+                $resultados[$linea['documento']]['salida_cantidad'] = $linea['cantidad_total'];
                 $resultados[$linea['documento']]['ingreso_cantidad'] = 0;
             }
             
@@ -405,7 +405,7 @@ class informe_analisisarticulos extends fs_controller {
         /*
          * Generamos la informacion de los albaranes de proveedor asociados a facturas no anuladas
          */
-        $sql_albaranes = "select codalmacen,ac.fecha,ac.hora,ac.codigo,ac.idalbaran as documento,a.referencia,a.descripcion, coddivisa, tasaconv, sum(cantidad) as cantidad, sum(pvptotal) as monto
+        $sql_albaranes = "select codalmacen,ac.fecha,ac.hora,ac.codigo,ac.idalbaran as documento,a.referencia,a.descripcion, coddivisa, tasaconv, sum(cantidad) as cantidad_total, sum(pvptotal) as monto
         from albaranesprov as ac
         join lineasalbaranesprov as l ON (ac.idalbaran=l.idalbaran)
         JOIN articulos as a ON(a.referencia = l.referencia)
@@ -422,7 +422,7 @@ class informe_analisisarticulos extends fs_controller {
         /*
          * Generamos la informacion de los albaranes de proveedor asociados a facturas no anuladas
          */
-        $sql_albaranes = "select codalmacen,ac.fecha,ac.hora,ac.codigo,ac.idalbaran as documento,a.referencia,a.descripcion, coddivisa, tasaconv, sum(cantidad) as cantidad, sum(pvptotal) as monto
+        $sql_albaranes = "select codalmacen,ac.fecha,ac.hora,ac.codigo,ac.idalbaran as documento,a.referencia,a.descripcion, coddivisa, tasaconv, sum(cantidad) as cantidad_total, sum(pvptotal) as monto
         from albaranesprov as ac
         join lineasalbaranesprov as l ON (ac.idalbaran=l.idalbaran)
         JOIN articulos as a ON(a.referencia = l.referencia)
@@ -440,7 +440,7 @@ class informe_analisisarticulos extends fs_controller {
          * Generamos la informacion de las facturas de proveedor ingresadas
          * que no esten asociadas a un albaran de proveedor
          */
-        $sql_facturasprov = "select codalmacen,fc.fecha,fc.hora,fc.codigo,fc.idfactura as documento,referencia,descripcion, coddivisa, tasaconv,sum(cantidad) as cantidad, sum(pvptotal) as monto
+        $sql_facturasprov = "select codalmacen,fc.fecha,fc.hora,fc.codigo,fc.idfactura as documento,referencia,descripcion, coddivisa, tasaconv,sum(cantidad) as cantidad_total, sum(pvptotal) as monto
         from facturasprov as fc
         join lineasfacturasprov as l ON (fc.idfactura=l.idfactura)
         where codalmacen = '" . stripcslashes(strip_tags(trim($almacen->codalmacen))) . "' AND fecha between '" . $this->fecha_inicio . "' and '" . $this->fecha_fin . "'
@@ -459,7 +459,7 @@ class informe_analisisarticulos extends fs_controller {
          * Generamos la informacion de las facturas de proveedor ingresadas
          * que no esten asociadas a un albaran de proveedor
          */
-        $sql_facturasprov = "select codalmacen,fc.fecha,fc.hora,fc.codigo,fc.idfactura as documento,referencia,descripcion, coddivisa, tasaconv,sum(cantidad) as cantidad, sum(pvptotal) as monto
+        $sql_facturasprov = "select codalmacen,fc.fecha,fc.hora,fc.codigo,fc.idfactura as documento,referencia,descripcion, coddivisa, tasaconv,sum(cantidad) as cantidad_total, sum(pvptotal) as monto
         from facturasprov as fc
         join lineasfacturasprov as l ON (fc.idfactura=l.idfactura)
         where codalmacen = '" . stripcslashes(strip_tags(trim($almacen->codalmacen))) . "' AND fecha between '" . $this->fecha_inicio . "' and '" . $this->fecha_fin . "'
@@ -477,7 +477,7 @@ class informe_analisisarticulos extends fs_controller {
         /*
          * Generamos la informacion de los albaranes no asociados a facturas
          */
-        $sql_albaranes_sin_factura = "select codalmacen,ac.fecha,ac.hora,ac.codigo,ac.idalbaran as documento,referencia,descripcion,coddivisa, tasaconv,observaciones,sum(cantidad) as cantidad, sum(pvptotal) as monto
+        $sql_albaranes_sin_factura = "select codalmacen,ac.fecha,ac.hora,ac.codigo,ac.idalbaran as documento,referencia,descripcion,coddivisa, tasaconv,observaciones,sum(cantidad) as cantidad_total, sum(pvptotal) as monto
         from albaranescli as ac
         join lineasalbaranescli as l ON (ac.idalbaran=l.idalbaran)
         where codalmacen = '" . stripcslashes(strip_tags(trim($almacen->codalmacen))) . "' AND fecha between '" . $this->fecha_inicio . "' and '" . $this->fecha_fin . "'
@@ -495,7 +495,7 @@ class informe_analisisarticulos extends fs_controller {
         /*
          * Generamos la informacion de los albaranes asociados a facturas no anuladas
          */
-        $sql_albaranes = "select codalmacen,ac.fecha,ac.hora,ac.codigo,ac.idalbaran AS documento,referencia,descripcion,coddivisa, tasaconv,sum(cantidad) as cantidad, sum(pvptotal) as monto
+        $sql_albaranes = "select codalmacen,ac.fecha,ac.hora,ac.codigo,ac.idalbaran AS documento,referencia,descripcion,coddivisa, tasaconv,sum(cantidad) as cantidad_total, sum(pvptotal) as monto
         from albaranescli as ac
         join lineasalbaranescli as l ON (ac.idalbaran=l.idalbaran)
         where codalmacen = '" . stripcslashes(strip_tags(trim($almacen->codalmacen))) . "' AND fecha between '" . $this->fecha_inicio . "' and '" . $this->fecha_fin . "'
@@ -511,7 +511,7 @@ class informe_analisisarticulos extends fs_controller {
         /*
          * Generamos la informacion de las facturas que se han generado sin albaran y que son de venta
          */
-        $sql_facturas = "select codalmacen,fc.fecha,fc.hora,fc.codigo,fc.idfactura as documento,referencia,descripcion,descripcion,coddivisa,sum(cantidad) as cantidad, sum(pvptotal) as monto
+        $sql_facturas = "select codalmacen,fc.fecha,fc.hora,fc.codigo,fc.idfactura as documento,referencia,descripcion,descripcion,coddivisa,sum(cantidad) as cantidad_total, sum(pvptotal) as monto
         from facturascli as fc
         join lineasfacturascli as l ON (fc.idfactura=l.idfactura)
         where codalmacen = '" . stripcslashes(strip_tags(trim($almacen->codalmacen))) . "' AND fecha between '" . $this->fecha_inicio . "' and '" . $this->fecha_fin . "'
@@ -529,7 +529,7 @@ class informe_analisisarticulos extends fs_controller {
         /*
          * Generamos la informacion de los albaranes asociados a facturas no anuladas con lineas de oferta
          */
-        $sql_albaranes = "select codalmacen,ac.fecha,ac.hora,ac.codigo,ac.idalbaran AS documento,referencia,descripcion,coddivisa, tasaconv,sum(cantidad) as cantidad, sum(pvptotal) as monto
+        $sql_albaranes = "select codalmacen,ac.fecha,ac.hora,ac.codigo,ac.idalbaran AS documento,referencia,descripcion,coddivisa, tasaconv,sum(cantidad) as cantidad_total, sum(pvptotal) as monto
         from albaranescli as ac
         join lineasalbaranescli as l ON (ac.idalbaran=l.idalbaran)
         where codalmacen = '" . stripcslashes(strip_tags(trim($almacen->codalmacen))) . "' AND fecha between '" . $this->fecha_inicio . "' and '" . $this->fecha_fin . "'
@@ -545,7 +545,7 @@ class informe_analisisarticulos extends fs_controller {
         /*
          * Generamos la informacion de las facturas que se han generado sin albaran y que son de venta
          */
-        $sql_facturas = "select codalmacen,fc.fecha,fc.hora,fc.codigo,fc.idfactura as documento,referencia,descripcion,descripcion,coddivisa,sum(cantidad) as cantidad, sum(pvptotal) as monto
+        $sql_facturas = "select codalmacen,fc.fecha,fc.hora,fc.codigo,fc.idfactura as documento,referencia,descripcion,descripcion,coddivisa,sum(cantidad) as cantidad_total, sum(pvptotal) as monto
         from facturascli as fc
         join lineasfacturascli as l ON (fc.idfactura=l.idfactura)
         where codalmacen = '" . stripcslashes(strip_tags(trim($almacen->codalmacen))) . "' AND fecha between '" . $this->fecha_inicio . "' and '" . $this->fecha_fin . "'
@@ -563,7 +563,7 @@ class informe_analisisarticulos extends fs_controller {
         /*
          * Generamos la informacion de las facturas que se han generado sin albaran y que son de venta
          */
-        $sql_facturas = "select codalmacen,fc.fecha,fc.hora,fc.codigo,fc.idfactura as documento,referencia,descripcion,descripcion,coddivisa,sum(cantidad) as cantidad, sum(pvptotal) as monto
+        $sql_facturas = "select codalmacen,fc.fecha,fc.hora,fc.codigo,fc.idfactura as documento,referencia,descripcion,descripcion,coddivisa,sum(cantidad) as cantidad_total, sum(pvptotal) as monto
         from facturascli as fc
         join lineasfacturascli as l ON (fc.idfactura=l.idfactura)
         where codalmacen = '" . stripcslashes(strip_tags(trim($almacen->codalmacen))) . "' AND fecha between '" . $this->fecha_inicio . "' and '" . $this->fecha_fin . "'
@@ -583,7 +583,7 @@ class informe_analisisarticulos extends fs_controller {
             /*
              * Generamos la informacion de las transferencias por salida que se hayan hecho a los stocks
              */
-            $sql_regstocks = "select codalmaorigen, fecha, hora,l.idtrans as documento, a.referencia, sum(cantidad) as cantidad, a.descripcion, (cantidad * costemedio) as monto
+            $sql_regstocks = "select codalmaorigen, fecha, hora,l.idtrans as documento, a.referencia, a.descripcion, sum(cantidad) as cantidad_total, (sum(cantidad) * costemedio) as monto
             from lineastransstock AS ls
             JOIN transstock as l ON(ls.idtrans = l.idtrans)
             JOIN articulos as a ON(a.referencia = ls.referencia)
@@ -599,7 +599,7 @@ class informe_analisisarticulos extends fs_controller {
             /*
              * Generamos la informacion de las transferencias por ingresos que se hayan hecho a los stocks
              */
-            $sql_regstocks = "select codalmadestino, fecha, hora, l.idtrans as documento, a.referencia, sum(cantidad) as cantidad, a.descripcion,  (cantidad * costemedio) as monto
+            $sql_regstocks = "select codalmadestino, fecha, hora, l.idtrans as documento, a.referencia, a.descripcion, sum(cantidad) as cantidad_total, (sum(cantidad) * costemedio) as monto
             from lineastransstock AS ls
             JOIN transstock as l ON(ls.idtrans = l.idtrans)
             JOIN articulos as a ON(a.referencia = ls.referencia)
@@ -618,13 +618,13 @@ class informe_analisisarticulos extends fs_controller {
         /*
          * Generamos la informacion de las regularizaciones que se hayan hecho a los stocks
          */
-        $sql_regstocks = "select codalmacen, fecha, hora, l.idstock as documento, a.referencia, motivo, sum(cantidadini-cantidadfin) as cantidad, descripcion, costemedio
+        $sql_regstocks = "select codalmacen, fecha, hora, l.idstock as documento, a.referencia, descripcion, motivo, costemedio, sum(cantidadini-cantidadfin) as cantidad_total
         from lineasregstocks AS ls
         JOIN stocks as l ON(ls.idstock = l.idstock)
         JOIN articulos as a ON(a.referencia = l.referencia)
         where codalmacen = '" . stripcslashes(strip_tags(trim($almacen->codalmacen))) . "' AND fecha between '" . $this->fecha_inicio . "' and '" . $this->fecha_fin . "'
         and l.referencia IN ($productos)
-        group by l.codalmacen, fecha, hora, l.idstock, a.referencia, motivo, descripcion, costemedio
+        group by l.codalmacen, fecha, hora, l.idstock, a.referencia, descripcion, motivo, costemedio
         order by codalmacen,a.referencia,fecha,hora;";
         $data = $this->db->select($sql_regstocks);
         if ($data) {
@@ -649,12 +649,12 @@ class informe_analisisarticulos extends fs_controller {
                 $resultados[$linea['documento']]['documento'] = $linea['documento'];
                 $resultados[$linea['documento']]['referencia'] = $linea['referencia'];
                 $resultados[$linea['documento']]['descripcion'] = $linea['referencia'].' - '.$linea['descripcion'];
-                //$resultados[$linea['documento']]['regularizacion_cantidad'] = $linea['cantidad'];
-                $resultados[$linea['documento']]['salida_cantidad'] = $linea['cantidad'];
+                //$resultados[$linea['documento']]['regularizacion_cantidad'] = $linea['cantidad_total'];
+                $resultados[$linea['documento']]['salida_cantidad'] = $linea['cantidad_total'];
                 $resultados[$linea['documento']]['ingreso_cantidad'] = 0;
                 if($this->valorizado){
-                    //$resultados[$linea['documento']]['regularizacion_monto'] = $linea['costemedio'] * $linea['cantidad'];
-                    $resultados[$linea['documento']]['salida_monto'] = $linea['costemedio'] * $linea['cantidad'];
+                    //$resultados[$linea['documento']]['regularizacion_monto'] = $linea['costemedio'] * $linea['cantidad_total'];
+                    $resultados[$linea['documento']]['salida_monto'] = $linea['costemedio'] * $linea['cantidad_total'];
                     $resultados[$linea['documento']]['ingreso_monto'] = 0;
                 }
                 $this->lista[$idlinea][] = $resultados[$linea['documento']];
@@ -707,33 +707,10 @@ class informe_analisisarticulos extends fs_controller {
                 //Primera revisión del Saldo
                 $linea_resultado = $value;
                 $linea_resultado['saldo_cantidad'] = ($value['tipo_documento'] == K::kardex_SaldoInicial) ? $value['saldo_cantidad'] : $resumen[$value['codalmacen']][$value['referencia']]['saldo_cantidad'];
-                
-                /*
-                //Corregimos si hay una regularización de Stock
-                if(isset($value['regularizacion_cantidad'])){
-                    $cantidadRegularizacion = $value['regularizacion_cantidad'];
-                    $value['ingreso_cantidad'] = 0;
-                    $value['salida_cantidad'] = $cantidadRegularizacion;
-                    //Si hubo una regularización actualizamos los valores de la linea
-                    $linea_resultado = $value;
-                    $resumen[$value['codalmacen']][$value['referencia']]['saldo_cantidad'] += ($saldoCantidadInicial + ($value['ingreso_cantidad'] - $value['salida_cantidad']));
-                    $linea_resultado['saldo_cantidad'] = ($value['tipo_documento'] == K::kardex_SaldoInicial) ? $value['saldo_cantidad'] : $resumen[$value['codalmacen']][$value['referencia']]['saldo_cantidad'];
-                }
-                */
                 if($this->valorizado){
                     $saldoMontoInicial = ($value['tipo_documento'] == 'Saldo Inicial') ? $value['saldo_monto'] : 0;
                     $resumen[$value['codalmacen']][$value['referencia']]['saldo_monto'] += ($saldoMontoInicial + ($value['ingreso_monto'] - $value['salida_monto']));
                     $linea_resultado['saldo_monto'] = ($value['tipo_documento'] == K::kardex_SaldoInicial) ? $value['saldo_monto'] : $resumen[$value['codalmacen']][$value['referencia']]['saldo_monto'];
-                    /*
-                    if(isset($value['regularizacion_monto'])){
-                        $montoRegularizacion = $linea_resultado['saldo_monto']-$value['regularizacion_monto'];
-                        $linea_resultado['ingreso_monto'] = 0;
-                        $linea_resultado['salida_monto'] = $montoRegularizacion;
-                        $resumen[$value['codalmacen']][$value['referencia']]['saldo_monto'] += ($saldoCantidadInicial + ($value['ingreso_monto'] - $value['salida_monto']));
-                        $linea_resultado['saldo_monto'] = ($value['tipo_documento'] == K::kardex_SaldoInicial) ? $value['saldo_monto'] : $resumen[$value['codalmacen']][$value['referencia']]['saldo_monto'];
-                    }
-                     * 
-                     */
                     $lista_export[$value['referencia']][$value['fecha']][$value['tipo_documento']][$value['documento']]['ingreso_monto'] += $value['ingreso_monto'];
                     $lista_export[$value['referencia']][$value['fecha']][$value['tipo_documento']][$value['documento']]['salida_monto'] += $value['salida_monto'];
                     $lista_export[$value['referencia']][$value['fecha']][$value['tipo_documento']][$value['documento']]['saldo_monto'] = $linea_resultado['saldo_monto'];
