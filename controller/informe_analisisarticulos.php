@@ -329,10 +329,10 @@ class informe_analisisarticulos extends fs_controller
 
     /**
      * Con esta funcion se genera la información para el Inventario de Artículos
-     * @param type $almacen object \FacturaScripts\model\core\almacen
-     * @param type $data array
-     * @param type $documento string
-     * @param type $tipo string
+     * @param object $almacen object \FacturaScripts\model\core\almacen
+     * @param array $data array
+     * @param string $documento string
+     * @param string $tipo string
      */
     public function procesar_informacion($almacen, $data, $documento, $tipo)
     {
