@@ -240,7 +240,7 @@ class kardex extends fs_model
      * @param type $documento string
      * @param type $tipo string
      */
-    public function procesar_informacion(&$array, $almacen, $data, $documento, $tipo)
+    public function procesar_informacion($almacen, $data, $documento, $tipo)
     {
         $resultados = array();
         foreach ($data as $linea) {
@@ -293,21 +293,40 @@ class kardex extends fs_model
      * @param type $almacen
      * @return type value
      */
-    public function saldo_articulo($ref, $almacen, $desde)
+    public function saldoArticulo($ref, $almacen, $desde)
     {
         $total_ingresos = 0;
         //Facturas de compra sin albaran
-        $sql_compras1 = "SELECT sum(cantidad) as total FROM lineasfacturasprov as lfp" .
-            " JOIN facturasprov as fp on (fp.idfactura = lfp.idfactura)" .
-            " WHERE anulada = FALSE and idalbaran IS NULL and fecha < " . $this->var2str(\date('Y-m-d', strtotime($desde))) .
-            " AND codalmacen = " . $this->var2str($almacen) .
-            " AND referencia = " . $this->var2str($ref);
-        $data_Compras1 = $this->db->select($sql_compras1);
-        if ($data_Compras1) {
-            $total_ingresos += $data_Compras1[0]['total'];
+        $total_ingresos += $this->saldoArticuloFacturasCompra($almacen, $desde, $ref, false);
+        //Albaranes de compra
+        $total_ingresos += $this->saldoArticuloAlbaranesCompra($almacen, $desde, $ref);
+        
+        $total_salidas = 0;
+        //Facturas de venta sin albaran
+        $total_salidas += $this->saldoArticuloFacturasVenta($almacen, $desde, $ref, false);
+        //Albaranes de venta
+        $total_salidas += $this->saldoArticuloAlbaranesVenta($almacen, $desde, $ref);
+
+        //Si existen estas tablas se genera la información de las transferencias de stock
+        if ($this->db->table_exists('transstock', $this->tablas) AND $this->db->table_exists('lineastransstock', $this->tablas)) {
+            //Transferencias por ingreso
+            $total_ingresos += $this->saldoArticuloTransferencias($almacen, $desde, $ref, true);
+            //Transferencias por salida
+            $total_salidas += $this->saldoArticuloTransferencias($almacen, $desde, $ref, false);
         }
 
-        //Albaranes de compra
+        //Si existe esta tabla se genera la información de las regularizaciones de stock y se agrega como salida el resultado
+        if ($this->db->table_exists('lineasregstocks', $this->tablas)) {
+            $total_salidas += $this->saldoArticuloRegularizacion($almacen, $desde, $ref);
+        }
+
+        $total_saldo = $total_ingresos - $total_salidas;
+        return $total_saldo;
+    }
+    
+    public function saldoArticuloAlbaranesCompra($almacen, $desde, $ref)
+    {
+        $total_ingresos = 0;
         $sql_compras2 = "SELECT sum(cantidad) as total FROM lineasalbaranesprov as lap" .
             " JOIN albaranesprov as ap on (ap.idalbaran = lap.idalbaran)" .
             " WHERE fecha < " . $this->var2str(\date('Y-m-d', strtotime($desde))) .
@@ -317,81 +336,92 @@ class kardex extends fs_model
         if ($data_Compras2) {
             $total_ingresos += $data_Compras2[0]['total'];
         }
-
+        return $total_ingresos;
+    }
+    
+    public function saldoArticuloAlbaranesVenta($almacen, $desde, $ref)
+    {
         $total_salidas = 0;
-        //Facturas de venta sin albaran
-        $sql_ventas1 = "SELECT sum(cantidad) as total FROM lineasfacturascli as lfc" .
-            " JOIN facturascli as fc on (fc.idfactura = lfc.idfactura)" .
-            " WHERE anulada = FALSE and idalbaran IS NULL and fecha < " . $this->var2str(\date('Y-m-d', strtotime($desde))) .
-            " AND codalmacen = " . $this->var2str($almacen) .
-            " AND referencia = " . $this->var2str($ref);
-        $data_Ventas1 = $this->db->select($sql_ventas1);
-        if ($data_Ventas1) {
-            $total_salidas += $data_Ventas1[0]['total'];
-        }
-
-        //Albaranes de venta
-        $sql_ventas2 = "SELECT sum(cantidad) as total FROM lineasalbaranescli as lac" .
+        $sqlVentas = "SELECT sum(cantidad) as total FROM lineasalbaranescli as lac" .
             " JOIN albaranescli as ac on (ac.idalbaran = lac.idalbaran)" .
             " WHERE fecha < " . $this->var2str(\date('Y-m-d', strtotime($desde))) .
             " AND codalmacen = " . $this->var2str($almacen) .
             " AND referencia = " . $this->var2str($ref);
-        $data_Ventas2 = $this->db->select($sql_ventas2);
-        if ($data_Ventas2) {
-            $total_salidas += $data_Ventas2[0]['total'];
+        $dataVentas = $this->db->select($sqlVentas);
+        if ($dataVentas) {
+            $total_salidas += $dataVentas[0]['total'];
         }
-
-        //Si existen estas tablas se genera la información de las transferencias de stock
-        if ($this->db->table_exists('transstock', $this->tablas) AND $this->db->table_exists('lineastransstock', $this->tablas)) {
-            /*
-             * Generamos la informacion de las transferencias por ingresos entre almacenes que se hayan hecho a los stocks
-             */
-            $sql_transstock1 = "select sum(cantidad) as total FROM lineastransstock AS ls" .
-                " JOIN transstock as l ON(ls.idtrans = l.idtrans) " .
-                " WHERE codalmadestino = " . $this->var2str($almacen) .
-                " AND fecha < " . $this->var2str(\date('Y-m-d', strtotime($desde))) .
-                " AND referencia = " . $this->var2str($ref);
-            $data_transstock1 = $this->db->select($sql_transstock1);
-            if ($data_transstock1) {
-                $total_ingresos += $data_transstock1[0]['total'];
-            }
-
-            /*
-             * Generamos la informacion de las transferencias por salidas entre almacenes que se hayan hecho a los stocks
-             */
-            $sql_transstock2 = "select sum(cantidad) as total FROM lineastransstock AS ls " .
-                " JOIN transstock as l ON(ls.idtrans = l.idtrans) " .
-                " WHERE  codalmaorigen = " . $this->var2str($almacen) .
-                " AND fecha < " . $this->var2str(\date('Y-m-d', strtotime($desde))) .
-                " AND referencia = " . $this->var2str($ref);
-            $data_transstock2 = $this->db->select($sql_transstock2);
-            if ($data_transstock2) {
-                $total_salidas += $data_transstock2[0]['total'];
-            }
-        }
-
-        //Si existe esta tabla se genera la información de las regularizaciones de stock y se agrega como salida el resultado
-        if ($this->db->table_exists('lineasregstocks', $this->tablas)) {
-            $sql_regstocks = "select sum(cantidadini-cantidadfin) as total from lineasregstocks AS ls " .
-                " JOIN stocks as l ON(ls.idstock = l.idstock) " .
-                " WHERE fecha < " . $this->var2str(\date('Y-m-d', strtotime($desde))) .
-                " AND codalmacen = " . $this->var2str($almacen) .
-                " AND referencia = " . $this->var2str($ref);
-            $data_regstocks = $this->db->select($sql_regstocks);
-            if ($data_regstocks) {
-                $cantidad = $data_regstocks[0]['total'];
-                $total_salidas += $cantidad;
-            }
-        }
-
-        $total_saldo = $total_ingresos - $total_salidas;
-        return $total_saldo;
+        return $total_salidas;
     }
+    
+    public function saldoArticuloFacturasCompra($almacen, $desde, $ref, $albaran = true)
+    {
+        $totalIngresos = 0;
+        $idalbaran = ($albaran)?" != '' ":" IS NULL ";
+        $sqlCompras = "SELECT sum(cantidad) as total FROM lineasfacturasprov as lfp" .
+            " JOIN facturasprov as fp on (fp.idfactura = lfp.idfactura)" .
+            " WHERE anulada = FALSE and idalbaran ".$idalbaran." and fecha < " . $this->var2str(\date('Y-m-d', strtotime($desde))) .
+            " AND codalmacen = " . $this->var2str($almacen) .
+            " AND referencia = " . $this->var2str($ref);
+        $dataCompras = $this->db->select($sqlCompras);
+        if ($dataCompras) {
+            $totalIngresos += $dataCompras[0]['total'];
+        }   
+        return $totalIngresos;
+    }
+    
+    public function saldoArticuloFacturasVenta($almacen, $desde, $ref, $albaran = true)
+    {
+        $total_salidas = 0;
+        $idalbaran = ($albaran)?" != '' ":" IS NULL ";
+        $sqlVentas = "SELECT sum(cantidad) as total FROM lineasfacturascli as lfc" .
+            " JOIN facturascli as fc on (fc.idfactura = lfc.idfactura)" .
+            " WHERE anulada = FALSE and idalbaran ".$idalbaran." and fecha < " . $this->var2str(\date('Y-m-d', strtotime($desde))) .
+            " AND codalmacen = " . $this->var2str($almacen) .
+            " AND referencia = " . $this->var2str($ref);
+        $dataVentas = $this->db->select($sqlVentas);
+        if ($dataVentas) {
+            $total_salidas += $dataVentas[0]['total'];
+        }
+        return $total_salidas;
+    }
+    
+    public function saldoArticuloTransferencias($almacen, $desde, $ref, $ingresos = true)
+    {
+        $total_transferencia = 0;
+        $codalmacen = ($ingresos)?"codalmadestino":"codalmaorigen";
+        $sqlTransStock = "select sum(cantidad) as total FROM lineastransstock AS ls" .
+            " JOIN transstock as l ON(ls.idtrans = l.idtrans) " .
+            " WHERE ".$codalmacen." = " . $this->var2str($almacen) .
+            " AND fecha < " . $this->var2str(\date('Y-m-d', strtotime($desde))) .
+            " AND referencia = " . $this->var2str($ref);
+        $dataTransStock = $this->db->select($sqlTransStock);
+        if ($dataTransStock) {
+            $total_transferencia += $dataTransStock[0]['total'];
+        }
+        return $total_transferencia;
+    }
+    
+    public function saldoArticuloRegularizacion($almacen, $desde, $ref)
+    {
+        $total_salidas = 0;
+        $sqlRegStocks = "select sum(cantidadini-cantidadfin) as total from lineasregstocks AS ls " .
+            " JOIN stocks as l ON(ls.idstock = l.idstock) " .
+            " WHERE fecha < " . $this->var2str(\date('Y-m-d', strtotime($desde))) .
+            " AND codalmacen = " . $this->var2str($almacen) .
+            " AND referencia = " . $this->var2str($ref);
+        $dataRegStocks = $this->db->select($sqlRegStocks);
+        if ($dataRegStocks) {
+            $cantidad = $dataRegStocks[0]['total'];
+            $total_salidas += $cantidad;
+        }
+        return $total_salidas;
+    }
+    
     /*
      * Esta es la consulta multiple que utilizamos para sacar la información
      * de todos los articulos tanto ingresos como salidas
      */
-
     public function stock_query($almacen)
     {
         //Generamos el select para la subconsulta de productos activos y que se controla su stock
@@ -433,13 +463,13 @@ class kardex extends fs_model
                  * Generamos la informacion de los albaranes de proveedor asociados a facturas no anuladas
                  */
                 $sql_albaranes = "select ac.idalbaran,referencia,coddivisa,tasaconv,sum(cantidad) as cantidad, sum(pvptotal) as monto
-            from albaranesprov as ac
-            join lineasalbaranesprov as l ON (ac.idalbaran=l.idalbaran)
-            where codalmacen = '" . $almacen->codalmacen . "' AND fecha = '" . $this->fecha_proceso . "'
-            and idfactura is not null
-            and referencia = '" . $item['referencia'] . "'
-            group by ac.idalbaran,l.referencia,coddivisa,tasaconv
-            order by ac.idalbaran;";
+                    from albaranesprov as ac
+                    join lineasalbaranesprov as l ON (ac.idalbaran=l.idalbaran)
+                    where codalmacen = '" . $almacen->codalmacen . "' AND fecha = '" . $this->fecha_proceso . "'
+                    and idfactura is not null
+                    and referencia = '" . $item['referencia'] . "'
+                    group by ac.idalbaran,l.referencia,coddivisa,tasaconv
+                    order by ac.idalbaran;";
                 $data1 = $this->db->select($sql_albaranes);
                 if ($data1) {
                     foreach ($data1 as $linea) {
