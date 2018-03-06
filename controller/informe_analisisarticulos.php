@@ -44,11 +44,11 @@ class informe_analisisarticulos extends fs_controller
     public $i18n_controller;
     public $lista_almacenes;
     public $lista_resultados;
-    public $pathName;
-    public $fileName;
-    public $documentosDir;
-    public $kardexDir;
-    public $publicPath;
+    public $path_name;
+    public $file_name;
+    public $documentos_dir;
+    public $kardex_dir;
+    public $public_path;
     public $writer;
     public $kardex;
     public $kardex_valorizacion;
@@ -62,6 +62,38 @@ class informe_analisisarticulos extends fs_controller
     }
 
     protected function private_core()
+    {
+        $this->init();
+        $this->init_config();
+        $this->init_folders();
+
+        $procesar_reporte = \filter_input(INPUT_POST, 'procesar-reporte');
+        if (!empty($procesar_reporte)) {
+            $this->procesarReporteKardex();
+        }
+
+        $opciones_kardex = \filter_input(INPUT_POST, 'opciones-kardex');
+        if (!empty($opciones_kardex)) {
+            $this->procesarOpcionesKardex();
+        }
+
+        $type = \filter_input(INPUT_GET, 'type');
+        if ($type == 'buscar-articulos') {
+            $this->buscar_articulos();
+        }
+    }
+    
+    public function buscar_articulos()
+    {
+        $articulos = new articulo();
+        $query = \filter_input(INPUT_POST, 'q');
+        $data = $articulos->search($query);
+        $this->template = false;
+        header('Content-Type: application/json');
+        echo json_encode($data);
+    }
+    
+    public function init()
     {
         $this->familias = new familia();
         $this->articulos = new articulo();
@@ -78,92 +110,43 @@ class informe_analisisarticulos extends fs_controller
         $this->resultados_almacen = '';
         $this->mostrar = 'todo';
         $this->valorizado = false;
-        $this->fileName = '';
-        $basepath = dirname(dirname(dirname(__DIR__)));
-        $this->documentosDir = $basepath . DIRECTORY_SEPARATOR . FS_MYDOCS . 'documentos';
-        $this->kardexDir = $this->documentosDir . DIRECTORY_SEPARATOR . "kardex";
-        $this->publicPath = FS_PATH . FS_MYDOCS . 'documentos' . DIRECTORY_SEPARATOR . 'kardex';
+        $this->file_name = '';
+    }
+    
+    public function init_config()
+    {
         $this->tablas = $this->db->list_tables();
         $fsvar = new fs_var();
-
-        if (!is_dir($this->documentosDir)) {
-            mkdir($this->documentosDir);
-        }
-
-        if (!is_dir($this->kardexDir)) {
-            mkdir($this->kardexDir);
-        }
-
-        $fsvar->delete('kardex_ultimo_proceso');
-        $fsvar->delete('kardex_cron');
-        $fsvar->delete('kardex_programado');
-        $fsvar->delete('kardex_procesandose');
-        $fsvar->delete('kardex_usuario_procesando');
         $this->kardex_setup = $fsvar->array_get(
             array(
             'kardex_valorizacion' => 'promedio',
             ), FALSE
         );
-
         $this->kardex_valorizacion = $this->kardex_setup['kardex_valorizacion'];
-        $procesar_reporte = \filter_input(INPUT_POST, 'procesar-reporte');
-        if (!empty($procesar_reporte)) {
-            $inicio = \date('Y-m-d', strtotime(\filter_input(INPUT_POST, 'inicio')));
-            $fin = \date('Y-m-d', strtotime(\filter_input(INPUT_POST, 'fin')));
-            $almacen = \filter_input(INPUT_POST, 'almacen');
-            $familia = \filter_input(INPUT_POST, 'familia');
-            $articulo = \filter_input(INPUT_POST, 'articulo');
-            $mostrar = \filter_input(INPUT_POST, 'mostrar');
-            $valorizado = \filter_input(INPUT_POST, 'valorizado');
-            $this->mostrar = ($mostrar) ? $mostrar : $this->mostrar;
-            $this->valorizado = ($valorizado == 'true') ? TRUE : $this->valorizado;
-            $this->fecha_inicio = $inicio;
-            $this->fecha_fin = $fin;
-            $this->reporte = $procesar_reporte;
-            $this->almacen = ($almacen != 'null') ? $this->comma_separated_to_array($almacen) : NULL;
-            $this->familia = ($familia != 'null') ? $this->comma_separated_to_array($familia) : NULL;
-            $this->articulo = ($articulo != 'null') ? $this->comma_separated_to_array($articulo) : NULL;
-            $this->kardex_almacen();
+    }
+    
+    public function init_folders()
+    {
+        $basepath = dirname(dirname(dirname(__DIR__)));
+        $this->documentos_dir = $basepath . DIRECTORY_SEPARATOR . FS_MYDOCS . 'documentos';
+        $this->kardex_dir = $this->documentos_dir . DIRECTORY_SEPARATOR . "kardex";
+        $this->public_path = FS_PATH . FS_MYDOCS . 'documentos' . DIRECTORY_SEPARATOR . 'kardex';
+        if (!is_dir($this->documentos_dir)) {
+            mkdir($this->documentos_dir);
         }
 
-        $opciones_kardex = \filter_input(INPUT_POST, 'opciones-kardex');
-        if (!empty($opciones_kardex)) {
-            $data = array();
-            $op_kardex_valorizacion = \filter_input(INPUT_POST, 'kardex_valorizacion');
-            $kardex_valorizacion = ($op_kardex_valorizacion) ? $op_kardex_valorizacion : $this->kardex_valorizacion;
-            $kardex_config = array(
-                'kardex_valorizacion' => $kardex_valorizacion
-            );
-            if ($fsvar->array_save($kardex_config)) {
-                $data['success'] = true;
-                $data['mensaje'] = K::kardex_CambiosGrabadosCorrectamente;
-            } else {
-                $data['success'] = false;
-                $data['mensaje'] = K::kardex_CambiosNoGrabados;
-            }
-            $this->template = false;
-            header('Content-Type: application/json');
-            echo json_encode($data);
-        }
-
-        $type = \filter_input(INPUT_GET, 'type');
-        if ($type == 'buscar-articulos') {
-            $articulos = new articulo();
-            $query = \filter_input(INPUT_POST, 'q');
-            $data = $articulos->search($query);
-            $this->template = false;
-            header('Content-Type: application/json');
-            echo json_encode($data);
+        if (!is_dir($this->kardex_dir)) {
+            mkdir($this->kardex_dir);
         }
     }
 
     public function kardex_almacen()
     {
         $resumen = array();
-        $this->pathName = $this->kardexDir . DIRECTORY_SEPARATOR . K::kardex_Kardex . "_" . $this->user->nick . ".xlsx";
-        $this->fileName = $this->publicPath . DIRECTORY_SEPARATOR . K::kardex_Kardex . "_" . $this->user->nick . ".xlsx";
-        if (file_exists($this->fileName)) {
-            unlink($this->fileName);
+        $this->path_name = $this->kardex_dir . DIRECTORY_SEPARATOR . K::kardex_Kardex . "_" . $this->user->nick . ".xlsx";
+        $this->file_name = $this->public_path . DIRECTORY_SEPARATOR . K::kardex_Kardex . "_" . $this->user->nick . ".xlsx";
+        if (file_exists($this->file_name)) {
+            unlink($this->file_name);
         }
 
         $this->estilo_cabecera = array('border' => 'left,right,top,bottom', 'font-style' => 'bold');
@@ -213,14 +196,55 @@ class informe_analisisarticulos extends fs_controller
             $this->writer->writeSheetHeader($almacen0->nombre, array(), true);
             $resumen = array_merge($resumen, $this->stock_query($almacen0));
         }
-        $this->writer->writeToFile($this->pathName);
+        $this->writer->writeToFile($this->path_name);
         gc_collect_cycles();
         $this->resultados_almacen = $resumen;
         $data['rows'] = $resumen;
-        $data['filename'] = $this->fileName;
+        $data['filename'] = $this->file_name;
         $this->template = false;
         header('Content-Type: application/json');
         echo json_encode($data);
+    }
+    
+    public function procesarOpcionesKardex()
+    {
+        $data = array();
+        $fsvar = new fs_var();
+        $op_kardex_valorizacion = \filter_input(INPUT_POST, 'kardex_valorizacion');
+        $kardex_valorizacion = ($op_kardex_valorizacion) ? $op_kardex_valorizacion : $this->kardex_valorizacion;
+        $kardex_config = array(
+            'kardex_valorizacion' => $kardex_valorizacion
+        );
+        if ($fsvar->array_save($kardex_config)) {
+            $data['success'] = true;
+            $data['mensaje'] = K::kardex_CambiosGrabadosCorrectamente;
+        } else {
+            $data['success'] = false;
+            $data['mensaje'] = K::kardex_CambiosNoGrabados;
+        }
+        $this->template = false;
+        header('Content-Type: application/json');
+        echo json_encode($data);
+    }
+    
+    public function procesarReporteKardex()
+    {
+        $inicio = \date('Y-m-d', strtotime(\filter_input(INPUT_POST, 'inicio')));
+        $fin = \date('Y-m-d', strtotime(\filter_input(INPUT_POST, 'fin')));
+        $almacen = \filter_input(INPUT_POST, 'almacen');
+        $familia = \filter_input(INPUT_POST, 'familia');
+        $articulo = \filter_input(INPUT_POST, 'articulo');
+        $mostrar = \filter_input(INPUT_POST, 'mostrar');
+        $valorizado = \filter_input(INPUT_POST, 'valorizado');
+        $this->mostrar = ($mostrar) ? $mostrar : $this->mostrar;
+        $this->valorizado = ($valorizado == 'true') ? TRUE : $this->valorizado;
+        $this->fecha_inicio = $inicio;
+        $this->fecha_fin = $fin;
+        $this->reporte = \filter_input(INPUT_POST,'procesar-reporte');
+        $this->almacen = ($almacen != 'null') ? $this->comma_separated_to_array($almacen) : NULL;
+        $this->familia = ($familia != 'null') ? $this->comma_separated_to_array($familia) : NULL;
+        $this->articulo = ($articulo != 'null') ? $this->comma_separated_to_array($articulo) : NULL;
+        $this->kardex_almacen();
     }
 
     public function stock_query($almacen)

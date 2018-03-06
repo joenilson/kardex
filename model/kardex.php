@@ -75,11 +75,7 @@ class kardex extends fs_model
         $this->fecha_inicio = NULL;
         $this->fecha_fin = NULL;
         $this->fecha_proceso = NULL;
-        $this->articulo = new articulo();
-        $this->almacen = new almacen();
-        $this->empresa = new empresa();
         $this->cron = false;
-        $this->tablas = $this->db->list_tables();
     }
 
     public function install()
@@ -227,6 +223,7 @@ class kardex extends fs_model
 
     public function kardex_almacen()
     {
+        $this->almacen = new almacen();
         foreach ($this->almacen->all() as $almacen) {
             $this->stock_query($almacen);
         }
@@ -295,6 +292,7 @@ class kardex extends fs_model
      */
     public function saldoArticulo($ref, $almacen, $desde)
     {
+        $this->tablas = $this->db->list_tables();
         $total_ingresos = 0;
         //Facturas de compra sin albaran
         $total_ingresos += $this->saldoArticuloFacturasCompra($almacen, $desde, $ref, false);
@@ -424,6 +422,7 @@ class kardex extends fs_model
      */
     public function stock_query($almacen)
     {
+        $this->tablas = $this->db->list_tables();
         //Generamos el select para la subconsulta de productos activos y que se controla su stock
         $productos = "SELECT referencia, descripcion, costemedio FROM articulos where bloqueado = false and nostock = false;";
         $lista_productos = $this->db->select($productos);
