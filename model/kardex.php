@@ -194,7 +194,6 @@ class kardex extends fs_model
     /*
      * Actualizamos la información del Kardex con las fechas de inicio y fin
      */
-
     public function procesar_kardex()
     {
 
@@ -220,7 +219,6 @@ class kardex extends fs_model
     /*
      * Generamos la información por cada almacén activo
      */
-
     public function kardex_almacen()
     {
         $this->almacen = new almacen();

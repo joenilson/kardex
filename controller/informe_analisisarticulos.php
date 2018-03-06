@@ -49,6 +49,7 @@ class informe_analisisarticulos extends fs_controller
     public $documentos_dir;
     public $kardex_dir;
     public $public_path;
+    public $reporte;
     public $writer;
     public $kardex;
     public $kardex_valorizacion;
@@ -91,6 +92,47 @@ class informe_analisisarticulos extends fs_controller
         $this->template = false;
         header('Content-Type: application/json');
         echo json_encode($data);
+    }
+    
+    public function cabeceraKardexAlmacen()
+    {
+        $header = array();
+        $header[K::kardex_Fecha] = '';
+        $header[K::kardex_Documento] = 'string';
+        $header[K::kardex_Numero] = '';
+        $header[K::kardex_Referencia] = 'string';
+        $header[K::kardex_Articulo] = 'string';
+        $header[K::kardex_Salida] = '#,###,###.##';
+        if ($this->valorizado) {
+            $header[K::kardex_SalidaValorizada] = '#,###,###.##';
+        }
+        $header[K::kardex_Ingreso] = '#,###,###.##';
+        if ($this->valorizado) {
+            $header[K::kardex_IngresoValorizado] = '#,###,###.##';
+        }
+        $header[K::kardex_Saldo] = '#,###,###.##';
+        if ($this->valorizado) {
+            $header[K::kardex_SaldoValorizado] = '#,###,###.##';
+        }
+        
+        $this->header = array();
+        $this->header[] = K::kardex_Fecha;
+        $this->header[] = K::kardex_Documento;
+        $this->header[] = K::kardex_Numero;
+        $this->header[] = K::kardex_Referencia;
+        $this->header[] = K::kardex_Articulo;
+        $this->header[] = K::kardex_Salida;
+        if ($this->valorizado) {
+            $this->header[] = K::kardex_SalidaValorizada;
+        }
+        $this->header[] = K::kardex_Ingreso;
+        if ($this->valorizado) {
+            $this->header[] = K::kardex_IngresoValorizado;
+        }
+        $this->header[] = K::kardex_Saldo;
+        if ($this->valorizado) {
+            $this->header[] = K::kardex_SaldoValorizado;
+        }
     }
     
     public function init()
@@ -153,41 +195,7 @@ class informe_analisisarticulos extends fs_controller
         $this->estilo_cuerpo = array(array('halign' => 'left'), array('halign' => 'right'), array('halign' => 'center'), array('halign' => 'none'));
         $this->estilo_pie = array('border' => 'left,right,top,bottom', 'font-style' => 'bold', 'color' => '#FFFFFF', 'fill' => '#000000');
 
-        $header[K::kardex_Fecha] = '';
-        $header[K::kardex_Documento] = 'string';
-        $header[K::kardex_Numero] = '';
-        $header[K::kardex_Referencia] = 'string';
-        $header[K::kardex_Articulo] = 'string';
-        $header[K::kardex_Salida] = '#,###,###.##';
-        if ($this->valorizado) {
-            $header[K::kardex_SalidaValorizada] = '#,###,###.##';
-        }
-        $header[K::kardex_Ingreso] = '#,###,###.##';
-        if ($this->valorizado) {
-            $header[K::kardex_IngresoValorizado] = '#,###,###.##';
-        }
-        $header[K::kardex_Saldo] = '#,###,###.##';
-        if ($this->valorizado) {
-            $header[K::kardex_SaldoValorizado] = '#,###,###.##';
-        }
-        $this->header = array();
-        $this->header[] = K::kardex_Fecha;
-        $this->header[] = K::kardex_Documento;
-        $this->header[] = K::kardex_Numero;
-        $this->header[] = K::kardex_Referencia;
-        $this->header[] = K::kardex_Articulo;
-        $this->header[] = K::kardex_Salida;
-        if ($this->valorizado) {
-            $this->header[] = K::kardex_SalidaValorizada;
-        }
-        $this->header[] = K::kardex_Ingreso;
-        if ($this->valorizado) {
-            $this->header[] = K::kardex_IngresoValorizado;
-        }
-        $this->header[] = K::kardex_Saldo;
-        if ($this->valorizado) {
-            $this->header[] = K::kardex_SaldoValorizado;
-        }
+        $this->cabeceraKardexAlmacen();
 
         $this->writer = new XLSXWriter();
 
@@ -298,14 +306,14 @@ class informe_analisisarticulos extends fs_controller
         foreach ($this->db->select($articulos) as $d) {
             $resultados = array();
             $art = $art0->get($d['referencia']);
-            $saldo = $this->kardex->saldo_articulo($art->referencia, $almacen->codalmacen, $this->fecha_inicio);
+            $saldo = $this->kardex->saldoArticulo($art->referencia, $almacen->codalmacen, $this->fecha_inicio);
             $resultados['codalmacen'] = $almacen->codalmacen;
             $resultados['nombre'] = $almacen->nombre;
             $resultados['fecha'] = $this->fecha_inicio;
             $resultados['tipo_documento'] = K::kardex_SaldoInicial;
             $resultados['documento'] = 'STOCK';
             $resultados['referencia'] = $art->referencia;
-            $resultados['descripcion'] = $art->referencia . ' - ' . $art->descripcion;
+            $resultados['descripcion'] = $art->referencia . ' - ' . html_entity_decode($art->descripcion);
             $resultados['saldo_cantidad'] = $saldo;
             $resultados['salida_cantidad'] = 0;
             $resultados['ingreso_cantidad'] = 0;
@@ -362,7 +370,7 @@ class informe_analisisarticulos extends fs_controller
             $resultados[$linea['documento']]['tipo_documento'] = $documento . " " . $linea['codigo'];
             $resultados[$linea['documento']]['documento'] = $linea['documento'];
             $resultados[$linea['documento']]['referencia'] = $linea['referencia'];
-            $resultados[$linea['documento']]['descripcion'] = $linea['referencia'] . ' - ' . stripcslashes($linea['descripcion']);
+            $resultados[$linea['documento']]['descripcion'] = $linea['referencia'] . ' - ' . html_entity_decode(stripcslashes($linea['descripcion']));
             if ($tipo == 'ingreso') {
                 $resultados[$linea['documento']]['salida_cantidad'] = 0;
                 $resultados[$linea['documento']]['ingreso_cantidad'] = $linea['cantidad_total'];
