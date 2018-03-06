@@ -289,9 +289,9 @@ class kardex extends fs_model
 
     /**
      * Recalculo de saldos de stock por cada articulo almacén
-     * @param type $ref
-     * @param type $almacen
-     * @return type value
+     * @param string $ref
+     * @param string $almacen
+     * @return float value
      */
     public function saldoArticulo($ref, $almacen, $desde)
     {
