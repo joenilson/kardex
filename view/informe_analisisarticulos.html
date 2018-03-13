@@ -303,7 +303,9 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
                 else
                 {
                     $("#grid_kardex")[0].grid.endReq();
-                    bootbox.alert('Hubo un error en el servidor, intentelo nuevamente revisando los datos que envió. '+datos);
+                    bootbox.alert('Hubo un error con los datos revueltos, intentelo nuevamente revisando los datos que envió. '+datos);
+                    console.log('Log de datos vacios: ');
+                    console.log(datos);
                 }
                 $('#b_generar_reporte').show();
                 $('#generando').hide();
@@ -314,6 +316,8 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
                 $('#b_generar_reporte').show();
                 $('#generando').hide();
                 bootbox.alert('Hubo un error en el servidor, intentelo nuevamente revisando los datos que envió: '+datos);
+                console.log('Log de errores en respuesta: ');
+                    console.log(datos);
             }
         });
     }
