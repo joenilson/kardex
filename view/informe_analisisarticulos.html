@@ -282,8 +282,6 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
             async: false,
             data: 'procesar-reporte=true&inicio=' + inicio + '&fin=' + fin + '&almacen=' + almacen + '&familia=' + familia + '&articulo=' + articulo + '&mostrar=' + mostrar + '&valorizado=' + valorizado,
             success: function (datos) {
-                console.log('Loggeo de datos recibidos:');
-                console.log(datos);
                 if(datos.rows)
                 {
                     $('#grid_kardex').jqGrid()
@@ -303,9 +301,7 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
                 else
                 {
                     $("#grid_kardex")[0].grid.endReq();
-                    bootbox.alert('Hubo un error con los datos revueltos, intentelo nuevamente revisando los datos que envió. '+datos);
-                    console.log('Log de datos vacios: ');
-                    console.log(datos);
+                    bootbox.alert('No hay datos con los parámetros elegidos, intentelo nuevamente revisando los parámetros que eligió (fechas, familias, almacenes).');
                 }
                 $('#b_generar_reporte').show();
                 $('#generando').hide();
@@ -315,9 +311,7 @@ Copyright (C) 2016 Joe Nilson <joenilson@gmail.com>
                 $("#grid_kardex")[0].grid.endReq();
                 $('#b_generar_reporte').show();
                 $('#generando').hide();
-                bootbox.alert('Hubo un error en el servidor, intentelo nuevamente revisando los datos que envió: '+datos);
-                console.log('Log de errores en respuesta: ');
-                    console.log(datos);
+                bootbox.alert('Hubo un error en el servidor, por favor confirme que el tiempo de proceso no haya excedido el limite del servidor.');
             }
         });
     }
